@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>上司落とし</title>
+<meta property="og:title" content="上司落とし">
+<meta property="og:description" content="上司を武器で落としまくる爽快ゲーム!">
+<meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap">
 <style>
 :root{--bg:#f1ece0;--fg:#241c16;--ac:#d9381e;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -33,10 +36,11 @@ canvas#c{width:100%;height:100%;object-fit:contain;display:block;border-radius:1
 .card.lock{filter:grayscale(.85) brightness(.85)}
 .card.eq{background:#ffe9a8}.card.eq .pr{background:#d9381e;color:#fff}
 .card.can .pr{animation:pl .6s infinite alternate}
+#share{border:2px solid #2b1d16;background:var(--ac);color:#fff;border-radius:16px;padding:3px 12px;font:400 13px "Dela Gothic One",sans-serif;cursor:pointer;align-self:center}
 </style>
 </head>
 <body>
-<div id="hud"><div>ポイント <b id="pts">0</b></div><div>撃破 <b id="tot">0</b></div></div>
+<div id="hud"><div>ポイント <b id="pts">0</b></div><button id="share">シェア</button><div>撃破 <b id="tot">0</b></div></div>
 <div id="stage"><canvas id="c"></canvas><button id="ult" style="--p:0"><span>必殺</span></button></div>
 <div id="dock"><div id="tabs"><button class="tab on" data-t="0">武器</button><button class="tab" data-t="1">部下</button></div><div id="cards"></div></div>
 <script>
@@ -317,6 +321,22 @@ addEventListener('pointerup',()=>hold=false);addEventListener('pointercancel',()
 addEventListener('keydown',e=>{if(e.code==='Space'){key=true;e.preventDefault()}if(e.code==='KeyZ'||e.code==='Enter')ultGo()});
 addEventListener('keyup',e=>{if(e.code==='Space')key=false});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+document.getElementById('share').addEventListener('click',async()=>{
+ const url=location.origin+location.pathname,wn=WP[S.eq].n;
+ const l1=`上司を${S.tot.toLocaleString()}人落とした!`,l2=`武器:${wn} / 部下${S.subs}人・巨大${S.giants}人`;
+ const text=l1+'\n'+l2+'\n#上司落とし\n'+url;
+ try{
+  const c=document.createElement('canvas'),w=720,h=1040;c.width=w;c.height=h;const x=c.getContext('2d');
+  x.drawImage(cv,0,0,w,h);x.fillStyle='rgba(0,0,0,.6)';x.fillRect(0,h-250,w,250);
+  x.textAlign='center';x.fillStyle='#ffd24a';x.font='60px "Dela Gothic One",sans-serif';x.fillText('上司落とし',w/2,h-170);
+  x.fillStyle='#fff';x.font='40px "Dela Gothic One",sans-serif';x.fillText(l1,w/2,h-110);
+  x.font='30px sans-serif';x.fillText(l2,w/2,h-55);
+  const blob=await new Promise(r=>c.toBlob(r,'image/png')),file=new File([blob],'jyoushi.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({text,files:[file]});return}
+  if(navigator.share){await navigator.share({text});return}
+ }catch(err){if(err&&err.name==='AbortError')return}
+ window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(text),'_blank');
+});
 buildShop();requestAnimationFrame(loop);
 </script>
 </body>

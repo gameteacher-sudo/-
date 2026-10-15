@@ -41,13 +41,13 @@ canvas#c{width:100%;height:100%;object-fit:contain;display:block;border-radius:1
 #dock{display:flex;gap:10px;padding:8px 10px}
 .bt{flex:1;height:48px;border:3px solid #2b1d16;border-radius:12px;background:#d9381e;color:#fff;font:400 16px "Dela Gothic One",sans-serif;box-shadow:0 4px 0 #1a110b;cursor:pointer}
 .bt#rb{background:#7a5cff}
-#pz{position:absolute;left:14px;top:8px;width:40px;height:40px;border:3px solid #2b1d16;border-radius:10px;background:#f6edd8;font:400 16px "Dela Gothic One",sans-serif;color:#2b1d16;z-index:2;padding:0}
+#pz,#rk{position:absolute;left:14px;top:8px;width:40px;height:40px;border:3px solid #2b1d16;border-radius:10px;background:#f6edd8;font:400 16px "Dela Gothic One",sans-serif;color:#2b1d16;z-index:2;padding:0}
 #ov{position:fixed;inset:0;background:rgba(10,8,6,.8);display:none;z-index:9;padding:env(safe-area-inset-top,0px) 8px env(safe-area-inset-bottom,0px)}
 #ov.on{display:flex;align-items:center;justify-content:center}
 #ovb{width:100%;max-width:480px;max-height:92%;overflow:auto;background:#3b2a1e;border:4px solid #2b1d16;border-radius:14px;padding:10px;color:#f6edd8}
 .hd{display:flex;justify-content:space-between;align-items:center;gap:6px;font:400 14px "Dela Gothic One",sans-serif;margin-bottom:10px}
 .x{width:36px;height:36px;border:3px solid #2b1d16;border-radius:10px;background:#f6edd8;font-size:18px;color:#2b1d16}
-.tree{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.tree{display:grid;grid-template-columns:repeat(5,78px);gap:6px}
 .col{display:flex;flex-direction:column;align-items:center;gap:16px}
 .col h4{margin:0;font:400 12px "Dela Gothic One",sans-serif;background:#d9381e;padding:3px 8px;border-radius:8px;border:2px solid #2b1d16}
 .nd{position:relative;width:100%;border:3px solid #2b1d16;border-radius:10px;background:#f6edd8;color:#2b1d16;padding:4px 2px 5px;text-align:center;font:inherit;cursor:pointer}
@@ -68,11 +68,12 @@ canvas#c{width:100%;height:100%;object-fit:contain;display:block;border-radius:1
 .pn{background:#3b2a1e;border:4px solid #2b1d16;border-radius:14px;padding:12px;max-width:360px;width:100%}
 .pn canvas{width:100%;aspect-ratio:320/180;border-radius:10px;border:3px solid #2b1d16;display:block}
 .pn p{font:700 14px/1.7 sans-serif;margin:12px 0}.pn b{color:#ffd24a}
+#rk{left:auto;right:14px;font-size:13px}
 </style>
 </head>
 <body>
 <div id="hud"><div class="box"><span>ポイント</span><b id="pts">0</b></div><button id="share">シェア</button><div class="box"><span>撃破</span><b id="tot">0</b></div></div>
-<div id="stage"><canvas id="c"></canvas><button id="ult" style="--p:0"><span>時止め</span></button><button id="mute">音</button><button id="pz">Ⅱ</button></div>
+<div id="stage"><canvas id="c"></canvas><button id="ult" style="--p:0"><span>時止め</span></button><button id="mute">音</button><button id="pz">Ⅱ</button><button id="rk">順位</button></div>
 <div id="dock"><button class="bt" id="lv">レベルアップ</button><button class="bt" id="rb" hidden>転生</button></div>
 <div id="ov"><div id="ovb"></div></div>
 <div id="intro"><div id="t1"><h1>上司落とし</h1><div class="sub">無限に続く上司を殴り落とせ!</div><div class="go blink">タップしてスタート</div><div id="rec"></div></div>
@@ -100,11 +101,11 @@ const WP=[
  {n:'神の鉄槌',cost:100000000,k:400,cd:.12,sc:1.5}
 ];
 const SPIN=[1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0];
-let S={pts:0,tot:0,owned:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],eq:0,subs:0,giants:0,train:0,ult:0,mul:0,rb:0,seen:0};
+let S={pts:0,tot:0,owned:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],eq:0,subs:0,giants:0,train:0,ult:0,mul:0,rb:0,seen:0,dc:0};
 try{const d=JSON.parse(localStorage.getItem('jyoushi3')||'{}');Object.assign(S,d);while(S.owned.length<16)S.owned.push(0)}catch(e){}
 let dirtySave=false;const save=()=>{try{localStorage.setItem('jyoushi3',JSON.stringify(S))}catch(e){}dirtySave=false;LS=new Date()};
 const hireCost=()=>Math.floor(25*Math.pow(1.28,S.subs)),giantCost=()=>Math.floor(4000*Math.pow(1.55,S.giants)),trainCost=()=>Math.floor(120*Math.pow(2.3,S.train));
-const PM=()=>(1+S.rb)*(1+S.mul*.5);
+const PM=()=>2*(1+S.rb)*(1+S.mul);
 const HAIR=['#3a3a3a','#8a8a8a','#e6e6e6','#5a3a22'];
 let stack=[],flying=[],proj=[],parts=[],texts=[],fxs=[],counter=0,cd=0,shake=0,freeze=0,ts=1,flash=0,hold=false,key=false,pl=0;
 let combo=0,comboT=0,pop=0,charge=0,ult=null,acc1=0,acc2=0,clock=0,hudDirty=true,hudT=0,shopT=0,lastCharge=-1,lastS=0;
@@ -201,17 +202,17 @@ function wpn(i,t,ic){
  else{ctx.fillStyle='rgba(255,210,60,.5)';ctx.beginPath();ctx.arc(0,0,24,0,7);ctx.fill();ctx.fillStyle='#8a5a2b';ctx.fillRect(-20,-3,28,6);ctx.strokeRect(-20,-3,28,6);ctx.fillStyle='#ffd24a';rr(4,-16,20,32,4);fs();ctx.fillStyle='#fff';ctx.fillRect(8,-12,4,24)}
 }
 
-let ac,nbuf,master,mute=false,started=false,bgmT,step=0,bgmEl,lastT={};
+let ac,nbuf,master,mute=false,started=false,bgmT,step=0,bgmEl,lastT={},vc=0,vt=0;
 const FN=['throw','hit','bighit','punch','stop','release','buy','levelup'],BUF={};
-function actx(){if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=mute?0:.8;master.connect(ac.destination);loadAll()}if(ac.state==='suspended')ac.resume();return ac}
+function actx(){if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();const cp=ac.createDynamicsCompressor();cp.threshold.value=-18;cp.knee.value=12;cp.ratio.value=10;cp.attack.value=.003;cp.release.value=.15;master=ac.createGain();master.gain.value=mute?0:.55;master.connect(cp);cp.connect(ac.destination);loadAll()}if(ac.state==='suspended')ac.resume();return ac}
 async function loadAll(){for(const k of FN){try{const r=await fetch('se_'+k+'.mp3');if(!r.ok)continue;BUF[k]=await ac.decodeAudioData(await r.arrayBuffer())}catch(e){}}}
 function samp(k,v,rate){const b=BUF[k];if(!b)return false;const s=ac.createBufferSource(),g=ac.createGain();s.buffer=b;s.playbackRate.value=rate||1;g.gain.value=v;s.connect(g);g.connect(master);s.start();return true}
 function tone(f0,f1,d,v,ty){const n=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f0,n);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),n+d);g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(master);o.start(n);o.stop(n+d)}
 function nz(d,f,v,ty,f1){const n=ac.currentTime;if(!nbuf){nbuf=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate);const a=nbuf.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}
  const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();s.buffer=nbuf;fl.type=ty||'lowpass';fl.frequency.setValueAtTime(f,n);if(f1)fl.frequency.exponentialRampToValueAtTime(f1,n+d);g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.001,n+d);s.connect(fl);fl.connect(g);g.connect(master);s.start(n);s.stop(n+Math.min(d,.5))}
 const later=(fn,ms)=>setTimeout(()=>{try{fn()}catch(e){}},ms);
-function sfx(k,x){if(mute)return;try{actx();const t=performance.now(),lim={hit:45,throw:40,punch:28}[k]||0;if(t-(lastT[k]||0)<lim)return;lastT[k]=t;
- if(samp(k,.9,k==='throw'?1+(x||0)*.03:1+Math.random()*.1))return;
+function sfx(k,x){if(mute)return;try{actx();const t=performance.now(),lim={hit:80,throw:70,punch:35,bighit:60}[k]||0;if(t-(lastT[k]||0)<lim)return;lastT[k]=t;vc=Math.max(0,vc-(t-vt)/90);vt=t;if(vc>5&&(k==='hit'||k==='throw'||k==='punch'||k==='bighit'))return;vc++;
+ if(samp(k,.7,k==='throw'?1+(x||0)*.03:1+Math.random()*.1))return;
  if(k==='throw'){nz(.12,1200+x*150,.12,'bandpass',300);tone(500+x*20,200,.1,.06,'triangle')}
  else if(k==='hit'){tone(180,50,.12,.35);nz(.1,2500,.25,'lowpass',400)}
  else if(k==='bighit'){tone(120,28,.5,.7);nz(.4,3000,.5,'lowpass',200);tone(60,30,.6,.5,'sawtooth')}
@@ -374,8 +375,9 @@ const ov=document.getElementById('ov'),ovb=document.getElementById('ovb');let no
 const hf=n=>n<1e6?n.toLocaleString():fmt(n);
 function icon(fn){const c=document.createElement('canvas');c.width=64*dpr;c.height=64*dpr;const o=ctx;ctx=c.getContext('2d');ctx.scale(dpr,dpr);fn();ctx=o;return c}
 const WS=[2,2,1.7,1.7,1.5,1.9,1.5,1.7,1.1,1.4,1.2,1.3,1.1,1.3,1.3,1.2];
-const mulCost=()=>Math.floor(200*Math.pow(1.9,S.mul)),ultCost=()=>Math.floor(100*Math.pow(1.7,S.ult));
-const pay=c=>{if(S.pts<c)return false;S.pts-=c;sfx('buy');return true};
+const mulCost=()=>Math.floor(150*Math.pow(1.6,S.mul)),ultCost=()=>Math.floor(100*Math.pow(1.7,S.ult));
+const DC=()=>1-Math.min(S.dc,10)*.05,dcCost=()=>Math.floor(300*Math.pow(2,S.dc)),pay=(c,raw)=>{c=raw?c:Math.ceil(c*DC());if(S.pts<c)return false;S.pts-=c;sfx('buy');return true};
+const saleIc=()=>{ctx.fillStyle='#d9381e';ctx.lineWidth=3;ctx.strokeStyle='#2b1d16';ctx.beginPath();ctx.arc(32,32,22,0,7);fs();ctx.fillStyle='#fff';ctx.font='bold 28px sans-serif';ctx.textAlign='center';ctx.fillText('%',32,42)};
 const fistIc=()=>{ctx.fillStyle='#5b4fc8';ctx.lineWidth=3;ctx.strokeStyle='#1a1240';ctx.beginPath();ctx.arc(34,32,17,0,7);fs();ctx.fillStyle='#8a7cff';ctx.beginPath();ctx.arc(34,32,9,0,7);fs();ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(4,22);ctx.lineTo(16,22);ctx.moveTo(2,32);ctx.lineTo(14,32);ctx.moveTo(4,42);ctx.lineTo(16,42);ctx.stroke()};
 const bookIc=()=>{ctx.fillStyle='#d9381e';ctx.lineWidth=3;ctx.strokeStyle='#2b1d16';rr(14,12,36,42,4);fs();ctx.fillStyle='#fff';ctx.fillRect(20,20,24,8);ctx.fillStyle='#ffd24a';ctx.fillRect(20,34,24,4);ctx.fillRect(20,42,16,4)};
 const mulIc=()=>{ctx.fillStyle='#ffd24a';ctx.lineWidth=3;ctx.strokeStyle='#2b1d16';ctx.beginPath();ctx.arc(32,32,22,0,7);fs();ctx.fillStyle='#2b1d16';ctx.font='bold 26px sans-serif';ctx.textAlign='center';ctx.fillText('×',32,41)};
@@ -386,6 +388,7 @@ function BR(){return[
   {n:'研修',sub:()=>'Lv'+S.train,ic:bookIc,st:()=>S.subs>=1?'buy':'lock',pr:trainCost,go:()=>{if(S.subs>=1&&pay(trainCost()))S.train++}},
   {n:'巨大部下',sub:()=>S.giants+'人',ic:()=>emp(32,60,1.45,'#5a2a3a','#ffd24a',0,'#222',1.35),st:()=>S.subs>=5?'buy':'lock',pr:giantCost,go:()=>{if(S.subs>=5&&pay(giantCost()))S.giants++}}]],
  ['時止め',[{n:'時止めLv',sub:()=>'Lv'+S.ult,ic:fistIc,st:()=>'buy',pr:ultCost,go:()=>{if(pay(ultCost()))S.ult++}}]],
+ ['割引',[{n:'セール',sub:()=>'-'+Math.round((1-DC())*100)+'%',ic:saleIc,st:()=>S.dc>=10?'own':'buy',pr:dcCost,raw:1,go:()=>{if(S.dc<10&&pay(dcCost(),1))S.dc++}}]],
  ['倍率',[{n:'ポイント倍率',sub:()=>'×'+PM().toFixed(2),ic:mulIc,st:()=>'buy',pr:mulCost,go:()=>{if(pay(mulCost()))S.mul++}}]]]}
 function openOv(){paused=true;ovOn=1;hold=false;ov.classList.add('on');if(bgmEl)bgmEl.pause()}
 function closeOv(){ov.classList.remove('on');paused=false;ovOn=0;if(bgmEl&&!mute)bgmEl.play().catch(()=>{})}
@@ -396,18 +399,28 @@ function openLv(){openOv();ovb.innerHTML='<div class="hd"><span>レベルアッ�
   tr.append(c)}
  document.getElementById('xx').onclick=closeOv;refreshUI()}
 function refreshUI(){const pm=document.getElementById('pm');if(pm)pm.textContent=hf(S.pts)+'pt ×'+PM().toFixed(2);
- for(const b of nodes){const n=b._n,s=n.st(),p=n.pr();b.className='nd '+s+(s==='buy'&&S.pts<p?' poor':'');b.children[2].textContent=n.sub();b.children[3].textContent=s==='eq'?'装備中':s==='own'?'装備する':s==='lock'?'未解放':fmt(p)+'pt'}
+ for(const b of nodes){const n=b._n,s=n.st(),p=n.raw?n.pr():Math.ceil(n.pr()*DC());b.className='nd '+s+(s==='buy'&&S.pts<p?' poor':'');b.children[2].textContent=n.sub();b.children[3].textContent=s==='eq'?'装備中':s==='own'?(n.raw?'MAX':'装備する'):s==='lock'?'未解放':fmt(p)+'pt'}
  hudDirty=true;document.getElementById('pts').textContent=hf(S.pts)}
-function openPause(){openOv();ovb.innerHTML='<div class="hd"><span>ポーズ</span></div><button class="mn" id="p1">再開</button><button class="mn" id="p2">サウンド: '+(mute?'OFF':'ON')+'</button><button class="mn" id="p3">データをコピー</button><button class="mn" id="p4">データを読み込む</button><button class="mn" id="p5">あそびかた</button><div style="margin-top:10px;font-size:12px">自動保存 '+LS.toLocaleTimeString()+'<br>転生'+S.rb+'回 / ポイント×'+PM().toFixed(2)+'</div>';
- const g=id=>document.getElementById(id);g('p1').onclick=closeOv;g('p5').onclick=()=>{ov.classList.remove('on');ovOn=0;intro.classList.remove('off');introOn=1;t1.hidden=true;t2.hidden=false;drawTut()};
- g('p2').onclick=()=>{startAudio();mute=!mute;if(master)master.gain.value=mute?0:.8;if(bgmEl)bgmEl.muted=mute;mb.classList.toggle('off',mute);mb.textContent=mute?'切':'音';openPause()};
+function openPause(){openOv();ovb.innerHTML='<div class="hd"><span>ポーズ</span></div><button class="mn" id="p1">再開</button><button class="mn" id="p2">サウンド: '+(mute?'OFF':'ON')+'</button><button class="mn" id="p3">データをコピー</button><button class="mn" id="p4">データを読み込む</button><button class="mn" id="p5">あそびかた</button><button class="mn" id="p6">ランキング</button><div style="margin-top:10px;font-size:12px">自動保存 '+LS.toLocaleTimeString()+'<br>転生'+S.rb+'回 / ポイント×'+PM().toFixed(2)+'</div>';
+ const g=id=>document.getElementById(id);g('p1').onclick=closeOv;g('p6').onclick=openRank;g('p5').onclick=()=>{ov.classList.remove('on');ovOn=0;intro.classList.remove('off');introOn=1;t1.hidden=true;t2.hidden=false;drawTut()};
+ g('p2').onclick=()=>{startAudio();mute=!mute;if(master)master.gain.value=mute?0:.55;if(bgmEl)bgmEl.muted=mute;mb.classList.toggle('off',mute);mb.textContent=mute?'切':'音';openPause()};
  g('p3').onclick=()=>{const c=btoa(unescape(encodeURIComponent(JSON.stringify(S))));try{navigator.clipboard.writeText(c).then(()=>alert('コピーしました'),()=>prompt('コピーしてください',c))}catch(e){prompt('コピーしてください',c)}};
  g('p4').onclick=()=>{const c=prompt('コピーしたデータを貼り付け');if(!c)return;try{Object.assign(S,JSON.parse(decodeURIComponent(escape(atob(c)))));save();hudDirty=true;dockUI();alert('読み込みました')}catch(e){alert('読み込めませんでした')}}}
-function dockUI(){const r=document.getElementById('rb');r.hidden=!S.owned[15];r.textContent='転生 ×'+(2+S.rb)}
+const RANK={project:'',key:''};
+const FU=()=>`https://firestore.googleapis.com/v1/projects/${RANK.project}/databases/(default)/documents`;
+async function rankList(){const r=await fetch(FU()+':runQuery?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:'ranks'}],orderBy:[{field:{fieldPath:'kills'},direction:'DESCENDING'}],limit:20}})});const j=await r.json();return j.filter(x=>x.document).map(x=>({name:x.document.fields.name.stringValue,kills:+x.document.fields.kills.integerValue}))}
+async function rankSend(){if(!S.uid)S.uid=Math.random().toString(36).slice(2,12);const nm=(prompt('ニックネーム(12文字まで)',S.nm||'')||'').trim().slice(0,12);if(!nm)return false;S.nm=nm;save();
+ const r=await fetch(FU()+'/ranks/'+S.uid+'?key='+RANK.key+'&updateMask.fieldPaths=name&updateMask.fieldPaths=kills',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{name:{stringValue:nm},kills:{integerValue:String(S.tot)}}})});return r.ok}
+async function openRank(){if(!RANK.project){alert('ランキングは準備中です');return}
+ openOv();ovb.innerHTML='<div class="hd"><span>撃破ランキング</span></div><div id="rl" style="font:700 13px sans-serif;min-height:120px">読み込み中…</div><button class="mn" id="r1">自分の記録を送信</button><button class="mn" id="r2">もどる</button>';
+ const g=id=>document.getElementById(id),show=async()=>{try{const l=await rankList(),d=g('rl');d.textContent='';l.forEach((x,i)=>{const r=document.createElement('div');r.style.cssText='display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #6b5038';r.textContent=(i+1)+'. '+x.name;const s=document.createElement('span');s.textContent=hf(x.kills)+'人';r.append(s);d.append(r)});if(!l.length)d.textContent='まだ記録がありません'}catch(e){g('rl').textContent='読み込めませんでした'}};
+ g('r1').onclick=async()=>{try{if(await rankSend())await show();else alert('送信できませんでした')}catch(e){alert('送信できませんでした')}};g('r2').onclick=closeOv;show()}
+function dockUI(){const r=document.getElementById('rb');r.hidden=!S.owned[15];r.textContent='転生 ×'+2*(2+S.rb)}
 document.getElementById('lv').onclick=openLv;
+document.getElementById('rk').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openRank()});
 document.getElementById('pz').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openPause()});
-document.getElementById('rb').onclick=()=>{if(!confirm('転生しますか?\n・ポイント倍率が×'+(2+S.rb)+'になります\n・自動レーザーがLv'+(S.rb+1)+'になります\n・ポイント、武器、部下、レベルはリセットされます'))return;
- S.rb++;S.pts=0;S.owned=[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];S.eq=0;S.subs=S.giants=S.train=S.ult=S.mul=0;proj.length=0;flying.length=0;save();hudDirty=true;dockUI();sfx('levelup');texts.push({x:W/2,y:H/2,s:'転生!!',l:1.2,sc:1.2,rot:0,c:'#ffd24a',up:1})};
+document.getElementById('rb').onclick=()=>{if(!confirm('転生しますか?\n・ポイント倍率が×'+2*(2+S.rb)+'になります\n・自動レーザーがLv'+(S.rb+1)+'になります\n・ポイント、武器、部下、レベルはリセットされます'))return;
+ S.rb++;S.pts=0;S.owned=[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];S.eq=0;S.subs=S.giants=S.train=S.ult=S.mul=S.dc=0;proj.length=0;flying.length=0;save();hudDirty=true;dockUI();sfx('levelup');texts.push({x:W/2,y:H/2,s:'転生!!',l:1.2,sc:1.2,rot:0,c:'#ffd24a',up:1})};
 const ub=document.getElementById('ult');
 ub.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();ultGo()});
 document.getElementById('stage').addEventListener('pointerdown',e=>{hold=true;e.preventDefault();punch()});
@@ -435,7 +448,7 @@ document.getElementById('share').addEventListener('click',async()=>{
 });
 addEventListener('pointerdown',startAudio,{once:true});addEventListener('keydown',startAudio,{once:true});
 const mb=document.getElementById('mute');
-mb.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();startAudio();mute=!mute;if(master)master.gain.value=mute?0:.8;if(bgmEl)bgmEl.muted=mute;mb.classList.toggle('off',mute);mb.textContent=mute?'切':'音'});
+mb.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();startAudio();mute=!mute;if(master)master.gain.value=mute?0:.55;if(bgmEl)bgmEl.muted=mute;mb.classList.toggle('off',mute);mb.textContent=mute?'切':'音'});
 let introOn=1;
 const intro=document.getElementById('intro'),t1=document.getElementById('t1'),t2=document.getElementById('t2');
 function drawTut(){const c=document.getElementById('tc');c.width=320*dpr;c.height=180*dpr;const o=ctx;ctx=c.getContext('2d');ctx.scale(dpr,dpr);

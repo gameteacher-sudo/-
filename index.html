@@ -94,11 +94,13 @@ body,#stage,canvas{-webkit-touch-callout:none;-webkit-user-select:none;user-sele
 #nds{font:700 12px/1.5 sans-serif;background:#2b1d16;border-radius:8px;padding:8px;margin:0 0 8px;min-height:44px;color:#f6edd8}
 #ovb .hd{position:sticky;top:-10px;z-index:3;background:#3b2a1e;padding:8px 0;margin:-10px 0 8px}
 .fr .lv{font:700 11px sans-serif;font-style:normal;color:#d9381e}
+#pz{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:46px;height:46px;box-shadow:0 3px 0 #1a110b}#pz i{display:block;width:24px;height:4px;border-radius:2px;background:#2b1d16}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.pg .mn{margin:0}.card{background:#2b1d16;border-radius:10px;padding:8px 10px;margin-top:12px}.ct{font:700 12px sans-serif;color:#ffd24a;margin-bottom:4px}.card .mn{margin-top:4px}.mn.go{background:#8fd36a;height:52px;font-size:17px;margin-top:10px}.st{font:12px/1.7 sans-serif;margin-top:12px;opacity:.8;text-align:center}
 </style>
 </head>
 <body>
 <div id="hud"><div class="box"><span>ポイント</span><b id="pts">0</b></div><button id="share">シェア</button><div class="box"><span>撃破</span><b id="tot">0</b></div></div>
-<div id="stage"><canvas id="c"></canvas><button id="ult" style="--p:0"><span>時止め</span></button><button id="mute">音</button><button id="pz">Ⅱ</button><button id="cl">組合</button><button id="rk">順位</button></div>
+<div id="stage"><canvas id="c"></canvas><button id="ult" style="--p:0"><span>時止め</span></button><button id="mute">音</button><button id="pz" aria-label="メニュー"><i></i><i></i><i></i></button><button id="cl">組合</button><button id="rk">順位</button></div>
 <div id="dock"><button class="bt" id="lv">レベルアップ</button><button class="bt" id="rb" hidden>転生</button></div>
 <div id="ov"><div id="ovb"></div></div>
 <div id="intro"><div id="t1"><h1>上司落とし</h1><div class="sub">無限に続く上司を殴り落とせ!</div><div class="go blink">タップしてスタート</div><div id="rec"></div></div>
@@ -127,7 +129,10 @@ const WP=[
 ];
 const SPIN=[1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0];
 let S={pts:0,tot:0,owned:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],eq:0,subs:0,giants:0,train:0,ult:0,mul:0,rb:0,seen:0,dc:0,cc:{1:0,2:0,3:0},st:{pm:0,crit:0},ach:{},dex:{},gl:0,card:0,days:0,bonus:0,mk:0,mkey:0};
-try{const d=JSON.parse(localStorage.getItem('jyoushi3')||'{}');Object.assign(S,d);while(S.owned.length<16)S.owned.push(0)}catch(e){}
+const DATAVER='1',RESET_OLD=true;let resetFlag=false;
+try{const d=JSON.parse(localStorage.getItem('jyoushi3')||'{}');
+ if(d&&d.tot!==undefined){if(d.dv===DATAVER||(d.dv===undefined&&!RESET_OLD))Object.assign(S,d);else{resetFlag=true;if(d.vb!==undefined)S.vb=d.vb;if(d.vs!==undefined)S.vs=d.vs}}
+ S.dv=DATAVER;while(S.owned.length<16)S.owned.push(0)}catch(e){}
 let dirtySave=false;const save=()=>{try{localStorage.setItem('jyoushi3',JSON.stringify(S))}catch(e){}dirtySave=false;LS=new Date()};
 const hireCost=()=>Math.floor(25*Math.pow(1.28,S.subs)),giantCost=()=>Math.floor(4000*Math.pow(1.55,S.giants)),trainCost=()=>Math.floor(120*Math.pow(2.3,S.train));
 const curKey=()=>{const d=new Date(Date.now()+5*36e5);return d.getUTCFullYear()*100+d.getUTCMonth()+1};
@@ -482,8 +487,12 @@ function openLv(){openOv();ovb.innerHTML='<div class="hd"><span>レベルアッ�
 function refreshUI(){const pm=document.getElementById('pm');if(pm)pm.textContent=hf(S.pts)+'pt';const p2=document.getElementById('pm2');if(p2)p2.textContent='倍率 ×'+PM()+' = 基本2 × 転生'+(1+S.rb)+' × 購入'+(1+S.mul);
  for(const b of nodes){const n=b._n,s=n.st(),p=n.raw?n.pr():Math.ceil(n.pr()*DC());b.className='nd '+s+(s==='buy'&&S.pts<p?' poor':'');b.children[2].textContent=n.sub();b.children[3].textContent=s==='eq'?'装備中':s==='own'?(n.raw?(n.lbl||'MAX'):'装備する'):s==='lock'?'未解放':fmt(p)+'pt'}
  hudDirty=true;document.getElementById('pts').textContent=hf(S.pts)}
-function openPause(){openOv();ovb.innerHTML='<div class="hd"><span>ポーズ</span></div><button class="mn" id="p1">再開</button><button class="mn" id="p2">サウンド: '+(mute?'OFF':'ON')+'</button><div class="sl">BGM <input type="range" id="sb" min="0" max="100" value="'+Math.round(VB()*100)+'"></div><div class="sl">効果音 <input type="range" id="ss" min="0" max="100" value="'+Math.round(VS()*100)+'"></div><button class="mn" id="p3">データをコピー</button><button class="mn" id="p4">データを読み込む</button><button class="mn" id="p5">あそびかた</button><button class="mn" id="p7">実績</button><button class="mn" id="p8">上司図鑑</button><button class="mn" id="p6">ランキング</button><div style="margin-top:10px;font-size:12px">自動保存 '+LS.toLocaleTimeString()+'<br>ID: '+S.uid.slice(0,8)+'<br>転生'+S.rb+'回 / ポイント×'+PM().toFixed(2)+'</div>';
- const g=id=>document.getElementById(id);g('p1').onclick=closeOv;g('p6').onclick=openRank;g('p7').onclick=openAch;g('p8').onclick=openDex;g('sb').oninput=e=>{S.vb=e.target.value/100;if(bgmEl)bgmEl.volume=.4*VB();save()};g('ss').oninput=e=>{S.vs=e.target.value/100;save()};g('p5').onclick=()=>{ov.classList.remove('on');ovOn=0;intro.classList.remove('off');introOn=1;tp=0;t1.hidden=true;t2.hidden=false;showTP()};
+function openPause(){openOv();ovb.innerHTML='<div class="hd"><span>メニュー</span><button class="x" id="p0">×</button></div><button class="mn go" id="p1">▶ ゲームに戻る</button>'
+ +'<div class="pg"><button class="mn" id="p7">実績</button><button class="mn" id="p8">上司図鑑</button><button class="mn" id="p6">ランキング</button><button class="mn" id="p5">あそびかた</button></div>'
+ +'<div class="card"><div class="ct">サウンド</div><button class="mn" id="p2" style="height:40px">サウンド: '+(mute?'OFF':'ON')+'</button><div class="sl">BGM <input type="range" id="sb" min="0" max="100" value="'+Math.round(VB()*100)+'"></div><div class="sl">効果音 <input type="range" id="ss" min="0" max="100" value="'+Math.round(VS()*100)+'"></div></div>'
+ +'<div class="card"><div class="ct">セーブデータ</div><div class="pg" style="margin-top:4px"><button class="mn" id="p3" style="height:40px">データをコピー</button><button class="mn" id="p4" style="height:40px">データを読み込む</button></div></div>'
+ +'<div class="st">自動保存 '+LS.toLocaleTimeString()+'<br>ID: '+S.uid.slice(0,8)+'<br>転生'+S.rb+'回 / ポイント×'+PM().toFixed(2)+'</div>';
+ const g=id=>document.getElementById(id);g('p1').onclick=closeOv;g('p0').onclick=closeOv;g('p6').onclick=openRank;g('p7').onclick=openAch;g('p8').onclick=openDex;g('sb').oninput=e=>{S.vb=e.target.value/100;if(bgmEl)bgmEl.volume=.4*VB();save()};g('ss').oninput=e=>{S.vs=e.target.value/100;save()};g('p5').onclick=()=>{ov.classList.remove('on');ovOn=0;intro.classList.remove('off');introOn=1;tp=0;t1.hidden=true;t2.hidden=false;showTP()};
  g('p2').onclick=()=>{startAudio();mute=!mute;if(master)master.gain.value=mute?0:.55;if(bgmEl)bgmEl.muted=mute;mb.classList.toggle('off',mute);mb.textContent=mute?'切':'音';openPause()};
  g('p3').onclick=()=>{const c=btoa(unescape(encodeURIComponent(JSON.stringify(S))));try{navigator.clipboard.writeText(c).then(()=>alert('コピーしました'),()=>prompt('コピーしてください',c))}catch(e){prompt('コピーしてください',c)}};
  g('p4').onclick=()=>{const c=prompt('コピーしたデータを貼り付け');if(!c)return;try{Object.assign(S,JSON.parse(decodeURIComponent(escape(atob(c)))));save();hudDirty=true;dockUI();alert('読み込みました')}catch(e){alert('読み込めませんでした')}}}
@@ -632,7 +641,7 @@ function drawTutN(){const c=document.getElementById('tc');c.width=320*dpr;c.heig
  else{['夜','休','闘'].forEach((k,i)=>{ctx.fillStyle=['#cfd8ff','#fff0b3','#ffd0c8'][i];rr(30+i*90,24,70,100,8);fs();ctx.fillStyle='#d9381e';ctx.font='36px "Dela Gothic One",sans-serif';ctx.fillText(k,65+i*90,88)});
   ctx.fillStyle='#ffd24a';ctx.font='bold 16px sans-serif';ctx.fillText('転生で1枚えらぶ!',160,158)}
  ctx=o}
-function begin(){intro.classList.add('off');introOn=0;paused=false;hold=false;last=performance.now();checkClubLink()}
+function begin(){intro.classList.add('off');introOn=0;paused=false;hold=false;last=performance.now();if(resetFlag){resetFlag=false;save();alert('データを更新したため、最初からになりました。')}checkClubLink()}
 intro.addEventListener('pointerdown',e=>{if(t1.hidden)return;e.preventDefault();startAudio();if(!S.seen){S.seen=1;save();tp=0;t1.hidden=true;t2.hidden=false;showTP()}else begin()});
 document.getElementById('ok').addEventListener('click',()=>{if(tp<2){tp++;showTP()}else begin()});document.getElementById('bk').addEventListener('click',()=>{tp=Math.max(0,tp-1);showTP()});
 document.getElementById('rec').textContent=S.tot?'撃破 '+hf(S.tot)+'人 ・ つづきから':'';

@@ -133,7 +133,7 @@ const hireCost=()=>Math.floor(25*Math.pow(1.28,S.subs)),giantCost=()=>Math.floor
 const curKey=()=>{const d=new Date(Date.now()+5*36e5);return d.getUTCFullYear()*100+d.getUTCMonth()+1};
 const nightF=()=>{const p=dayT%60;return p<25?0:p<30?(p-25)/5:p<55?1:(60-p)/5};
 const critRate=()=>S.cr?.04+(S.crl||0)*.032+ba('crit'):0,critMul=()=>1.5+(S.cml||0)*.35;
-const PM=()=>2*(1+S.rb)*(1+S.mul)*(S.cc[1]>0&&nightF()>.5?1+S.cc[1]:1)*(S.cc[2]>0&&S.bonus?5*S.cc[2]:1)*bv('pm');
+const PM=()=>2*Math.pow(1+S.rb+S.mul+(S.cc[1]>0&&nightF()>.5?S.cc[1]:0)+(S.cc[2]>0&&S.bonus?5*S.cc[2]:0)+(bv('pm')-1),.8);
 const HAIR=['#3a3a3a','#8a8a8a','#e6e6e6','#5a3a22'];
 let stack=[],flying=[],proj=[],parts=[],texts=[],fxs=[],counter=0,cd=0,shake=0,freeze=0,ts=1,flash=0,hold=false,key=false,pl=0;
 let combo=0,comboT=0,pop=0,charge=0,ult=null,acc1=0,acc2=0,clock=0,hudDirty=true,hudT=0,shopT=0,lastCharge=-1,lastS=0;
@@ -142,9 +142,9 @@ const RB=[{n:'係長',p:5e-2,h:30,t:'pm',v:2,d:60,bn:'ポイント×2(60秒)'},{
  {n:'会長',p:1e-6,h:60,t:'pm',v:5,d:300,bn:'ポイント×5(300秒)'},{n:'創業者',p:2e-7,h:100,t:'atk',v:5,d:300,bn:'攻撃力×5(300秒)'},{n:'大株主',p:5e-8,h:160,t:'pm',v:10,d:300,bn:'ポイント×10(300秒)'},{n:'社外取締役',p:1e-8,h:240,t:'spd',v:2,d:600,bn:'連射×2(600秒)'},{n:'上司神',p:1e-9,h:0,t:'pts',m:100000,bn:'10万倍ポイント'}];
 function rollRare(){let u=Math.random(),c=0;for(let i=RB.length-1;i>=0;i--){c+=RB[i].p;if(u<c)return i}return null}
 let curRare=null;
-const bv=t=>{let m=1;for(const b of buffs)if(b.t===t)m*=b.v;return m},ba=t=>{let m=0;for(const b of buffs)if(b.t===t)m+=b.v;return m};
-function onRare(i){const r=RB[i];S.dex[i]=(S.dex[i]||0)+1;if(r.t==='pts')S.pts+=Math.floor(r.m*PM()*20);else{buffs=buffs.filter(b=>b.t!==r.t);buffs.push({t:r.t,v:r.v,left:r.d,name:r.bn})}
- cutin={t:0,s:(S.dex[i]===1?'NEW! ':'')+r.n+'撃破! '+r.bn,c:'#7a5cff'};hudDirty=true;sfx('levelup')}
+const bv=t=>{let m=1;for(const b of buffs)if(b.t===t)m=Math.max(m,b.v);return m},ba=t=>{let m=0;for(const b of buffs)if(b.t===t)m=Math.max(m,b.v);return m};
+function onRare(i){const r=RB[i];S.dex[i]=(S.dex[i]||0)+1;if(r.t==='pts')S.pts+=Math.floor(Math.min(r.m*PM()*20,Math.max(1e4,S.pts*3)));else{const ex=buffs.find(b=>b.t===r.t);if(!ex)buffs.push({t:r.t,v:r.v,left:r.d,name:r.bn});else if(r.v>ex.v){ex.v=r.v;ex.left=r.d;ex.name=r.bn}else if(r.v===ex.v)ex.left=Math.max(ex.left,r.d)}
+ if(S.dex[i]===1){cutin={t:0,s:'NEW! '+r.n+'撃破! '+r.bn,c:'#7a5cff'};sfx('levelup')}hudDirty=true}
 function mk(y){const i=counter++,b=Math.floor(i/4);if(i%4===0)curRare=rollRare();const R=curRare!=null?RB[curRare]:null;return{t:[4,3,1,0][i%4],hue:R?R.h:[220,200,30,150,0,260][b%6],hair:R?'#ffd24a':HAIR[(b*3)%4],rare:curRare,y}}
 const slotY=i=>GROUND-(i+1)*BH;
 function fill(){while(stack.length<14){const top=stack.length?stack[stack.length-1].y:GROUND;stack.push(mk(top-BH))}}
@@ -244,16 +244,17 @@ const FN=['throw','hit','bighit','punch','stop','release','buy','levelup'],BUF={
 function actx(){if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();const cp=ac.createDynamicsCompressor();cp.threshold.value=-18;cp.knee.value=12;cp.ratio.value=10;cp.attack.value=.003;cp.release.value=.15;master=ac.createGain();master.gain.value=mute?0:.55;master.connect(cp);cp.connect(ac.destination);loadAll()}if(ac.state==='suspended')ac.resume();return ac}
 async function loadAll(){for(const k of FN){try{const r=await fetch('se_'+k+'.mp3');if(!r.ok)continue;BUF[k]=await ac.decodeAudioData(await r.arrayBuffer())}catch(e){}}}
 function samp(k,v,rate){v*=VS();const b=BUF[k];if(!b)return false;const s=ac.createBufferSource(),g=ac.createGain();s.buffer=b;s.playbackRate.value=rate||1;g.gain.value=v;s.connect(g);g.connect(master);s.start();return true}
-function tone(f0,f1,d,v,ty){v*=inBgm?VB():VS();const n=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f0,n);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),n+d);g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(master);o.start(n);o.stop(n+d)}
-function nz(d,f,v,ty,f1){v*=inBgm?VB():VS();const n=ac.currentTime;if(!nbuf){nbuf=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate);const a=nbuf.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}
- const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();s.buffer=nbuf;fl.type=ty||'lowpass';fl.frequency.setValueAtTime(f,n);if(f1)fl.frequency.exponentialRampToValueAtTime(f1,n+d);g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.001,n+d);s.connect(fl);fl.connect(g);g.connect(master);s.start(n);s.stop(n+Math.min(d,.5))}
+let act=0;
+function tone(f0,f1,d,v,ty){if(act>10&&!inBgm)return;act++;v*=inBgm?VB():VS();const n=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f0,n);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),n+d);g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(master);o.onended=()=>act--;o.start(n);o.stop(n+d)}
+function nz(d,f,v,ty,f1){if(act>10&&!inBgm)return;act++;v*=inBgm?VB():VS();const n=ac.currentTime;if(!nbuf){nbuf=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate);const a=nbuf.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}
+ const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();s.buffer=nbuf;fl.type=ty||'lowpass';fl.frequency.setValueAtTime(f,n);if(f1)fl.frequency.exponentialRampToValueAtTime(f1,n+d);g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.001,n+d);s.connect(fl);fl.connect(g);g.connect(master);s.onended=()=>act--;s.start(n);s.stop(n+Math.min(d,.5))}
 const later=(fn,ms)=>setTimeout(()=>{try{fn()}catch(e){}},ms);
-function sfx(k,x){if(mute)return;try{actx();const t=performance.now(),lim={hit:80,throw:70,punch:35,bighit:60}[k]||0;if(t-(lastT[k]||0)<lim)return;lastT[k]=t;vc=Math.max(0,vc-(t-vt)/90);vt=t;if(vc>5&&(k==='hit'||k==='throw'||k==='punch'||k==='bighit'))return;vc++;
+function sfx(k,x){if(mute)return;try{actx();const t=performance.now(),lim={hit:130,throw:120,punch:60,bighit:90}[k]||0;if(t-(lastT[k]||0)<lim)return;lastT[k]=t;vc=Math.max(0,vc-(t-vt)/90);vt=t;if(vc>3&&(k==='hit'||k==='throw'||k==='punch'||k==='bighit'))return;vc++;
  if(samp(k,.7,k==='throw'?1+(x||0)*.03:1+Math.random()*.1))return;
  if(k==='throw'){nz(.12,1200+x*150,.12,'bandpass',300);tone(500+x*20,200,.1,.06,'triangle')}
  else if(k==='hit'){tone(180,50,.12,.35);nz(.1,2500,.25,'lowpass',400)}
- else if(k==='bighit'){tone(120,28,.5,.7);nz(.4,3000,.5,'lowpass',200);tone(60,30,.6,.5,'sawtooth')}
- else if(k==='punch'){tone(160,35,.22,.9);tone(90,28,.32,.6,'sawtooth');tone(60,30,.4,.7);nz(.12,5000,.6,'lowpass',300);nz(.05,9000,.35,'highpass');tone(1400+Math.random()*500,500,.06,.12,'square')}
+ else if(k==='bighit'){tone(120,28,.5,.7);nz(.3,3000,.5,'lowpass',200)}
+ else if(k==='punch'){tone(160,35,.22,.9);tone(70,30,.35,.7);nz(.1,5000,.6,'lowpass',300)}
  else if(k==='stop'){tone(800,60,1,.35,'sawtooth');nz(.5,600,.4,'lowpass',80);tone(55,55,.9,.5)}
  else if(k==='release'){tone(100,25,.7,.8);nz(.5,5000,.6,'lowpass',150);tone(400,1600,.5,.15,'sawtooth')}
  else if(k==='buy'){tone(660,660,.08,.2,'square');later(()=>tone(990,990,.12,.2,'square'),80)}
@@ -263,8 +264,7 @@ const BASS=[55,55,82.4,55,65.4,65.4,98,65.4],LEAD=[330,0,392,0,440,392,0,330];
 function bgmTick(){inBgm=1;try{bgmTick0()}finally{inBgm=0}}
 function bgmTick0(){if(mute||!ac||(ult&&ult.ph<2))return;const s=step++%16;
  if(s%4===0)tone(150,45,.14,.28);
- if(s%2===1)nz(.04,8000,.05,'highpass');
- tone(BASS[(s>>1)%8],BASS[(s>>1)%8],.2,.09,'triangle');
+  tone(BASS[(s>>1)%8],BASS[(s>>1)%8],.2,.09,'triangle');
  if(LEAD[s%8])tone(LEAD[s%8],LEAD[s%8],.18,.035,'square')}
 function startAudio(){if(started)return;started=true;actx();bgmT=setInterval(bgmTick,214);
  try{bgmEl=new Audio('bgm.mp3');bgmEl.loop=true;bgmEl.volume=.4*VB();bgmEl.muted=mute;bgmEl.addEventListener('canplaythrough',()=>{clearInterval(bgmT);bgmEl.play().catch(()=>{})},{once:true})}catch(e){}}
@@ -272,7 +272,7 @@ function startAudio(){if(started)return;started=true;actx();bgmT=setInterval(bgm
 const subPos=j=>({x:62+(j>>1)*16+(j&1)*8,y:GROUND+28+(j&1)*14}),GX=[112,142];
 function throwP(x,y,wi,k,sub,sc){proj.push({x,y0:y,y,wi,k,sub,sc,t:0})}
 const TC=['#fff','#d9a27a','#cfd6dd','#e6edf5','#ff9a2e','#ffd24a','#ff9a2e','#35d0ff','#ff7a1e','#b46bff','#9cc04a','#ff4fd8','#ffe94a','#ff9ae8','#4fffd6','#ffd24a'];
-const fmt=n=>n>=1e8?+(n/1e8).toFixed(1)+'億':n>=1e4?+(n/1e4).toFixed(1)+'万':n.toLocaleString();
+const fmt=n=>n>=1e20?+(n/1e20).toFixed(1)+'垓':n>=1e16?+(n/1e16).toFixed(1)+'京':n>=1e12?+(n/1e12).toFixed(1)+'兆':n>=1e8?+(n/1e8).toFixed(1)+'億':n>=1e4?+(n/1e4).toFixed(1)+'万':n.toLocaleString();
 const GL={};function glow(c){return GL[c]||(GL[c]=sprite(64,64,()=>{const g=ctx.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,c);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,64,64)}))}
 let fireN=0;
 function fire(){const w=WP[S.eq],c=TC[S.eq],t=Math.min(1,S.eq/15);cd=w.cd/bv('spd');pl=.12;throwP(60,GROUND+2,S.eq,w.k,false,w.sc);
@@ -328,14 +328,16 @@ function drawLaser(){const on=lzC>=1,ch=lzC<1?lzC:1,y=GROUND-BH/2,x0=34,x1=CX-BW
   ctx.drawImage(glow('#35d0ff'),x1-50,y-50,100,100);ctx.globalCompositeOperation='source-over';
   if(parts.length<90)parts.push({x:x1,y:y+(Math.random()-.5)*20,vx:(Math.random()-.2)*500,vy:(Math.random()-.5)*500,l:.35,s:2+Math.random()*3,c:'#9ff',tr:1})}
  ctx.restore()}
-let lastDay=0,cutin=null,dayT=0,buffs=[];
+let lastDay=0,cutin=null,dayT=0,buffs=[],strk=null;
 function onDawn(){S.days++;dirtySave=true;
- if(S.cc[2]>0){if(S.bonus)S.bonus=0;else if(S.days%5===0){S.bonus=1;cutin={t:0,s:'ボーナスタイム!!',c:'#e89a00'}}}
- if(S.cc[3]>0&&S.days%5===0){const n=S.subs*1000*(S.cc[3]+1),ck=curKey();S.tot+=n;S.mk=(S.mkey===ck?S.mk:0)+n;S.mkey=ck;hudDirty=true;cutin={t:0,s:'ストライキ!! +'+hf(n)+'撃破',c:'#d9381e'}}}
+ if(S.cc[2]>0){if(S.bonus)S.bonus=0;else if(S.days%5===0){S.bonus=1;cutin={t:0,s:'ボーナスタイム!! ポイント大幅UP',c:'#e89a00'};flash=.7;sfx('release')}}
+ if(S.cc[3]>0&&S.days%5===0){const n=S.subs*1000*(S.cc[3]+1),ck=curKey();S.tot+=n;S.mk=(S.mkey===ck?S.mk:0)+n;S.mkey=ck;hudDirty=true;strk={t:0,n};sfx('stop')}}
 function drawSky(){const n=nightF();
  if(n>0){ctx.fillStyle='rgba(12,20,70,'+(.55*n).toFixed(3)+')';ctx.fillRect(0,0,W,H);
   if(n>.4){ctx.globalAlpha=n;ctx.fillStyle='#fff';for(let i=0;i<9;i++)ctx.fillRect(20+(i*37)%80,56+(i*53)%50,2,2);ctx.fillStyle='#ffe9a8';ctx.beginPath();ctx.arc(88,70,9,0,7);ctx.fill();ctx.globalAlpha=1}}
- if(S.bonus){ctx.fillStyle='rgba(255,190,40,'+(.18+.08*Math.sin(clock*6)).toFixed(3)+')';ctx.fillRect(0,0,W,H)}}
+ if(S.bonus){ctx.fillStyle='rgba(255,190,40,'+(.18+.08*Math.sin(clock*6)).toFixed(3)+')';ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.translate(CX,H*.42);ctx.globalCompositeOperation='lighter';for(let i=0;i<14;i++){const a=i/14*6.283+clock*.6;ctx.fillStyle='rgba(255,225,120,'+(.10+.05*Math.sin(clock*4+i)).toFixed(3)+')';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a-.07)*700,Math.sin(a-.07)*700);ctx.lineTo(Math.cos(a+.07)*700,Math.sin(a+.07)*700);ctx.fill()}ctx.restore();
+  ctx.fillStyle='#ffd24a';for(let i=0;i<14;i++){const x=(i*61+clock*40*(1+i%3))%W,y=(H-((clock*90*(1+i%4)+i*47)%H));ctx.globalAlpha=.8;ctx.fillRect(x,y,3,3);ctx.fillRect(x-3,y+1,9,1)}ctx.globalAlpha=1}}
 function punch(){
  if(!ult||ult.ph!==1)return;
  const k=Math.ceil((1+S.ult*3+Math.floor(WP[S.eq].k*.15)+S.giants+(S.subs>>2))*(1+S.ult*.25));
@@ -359,7 +361,7 @@ function drawStand(){
 function loop(now){
  if(paused){last=now;requestAnimationFrame(loop);return}
  const rdt=Math.min(.05,(now-last)/1000);last=now;clock+=rdt;if(!(ult&&ult.ph<2))dayT+=rdt;
- const dn=Math.floor(dayT/60);if(dn>lastDay){lastDay=dn;onDawn()}if(cutin){cutin.t+=rdt;if(cutin.t>1.8)cutin=null}
+ const dn=Math.floor(dayT/60);if(dn>lastDay){lastDay=dn;onDawn()}if(cutin){cutin.t+=rdt;if(cutin.t>1.8)cutin=null}if(strk){strk.t+=rdt;ts=strk.t<1.6?.2:1;if(strk.t>2.4){strk=null;ts=1}}
  if(freeze>0)freeze-=rdt;
  const dt=freeze>0?0:rdt*ts,stopped=!!(ult&&ult.ph<2),wd=stopped?0:dt,sd=stopped?rdt*.12:dt,td=stopped?rdt:dt;for(const b of buffs)b.left-=stopped?0:rdt;buffs=buffs.filter(b=>b.left>0);
  if(!ult)charge=Math.min(1,charge+rdt/20);
@@ -427,9 +429,10 @@ function draw(){
  ctx.globalAlpha=1;
  
  if(ult&&ult.ph===0){const t=ult.t;ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(W/2+Math.max(0,.15-t)*900,H/2-40);ctx.rotate(-.12);ctx.fillStyle='#4b2fb8';ctx.fillRect(-W,-34,W*2,68);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='34px "Dela Gothic One",sans-serif';ctx.fillText('時よ止まれ!!',0,12);ctx.restore()}
+ if(strk){const q=strk.t,a=Math.min(1,q*4)*(q>2?Math.max(0,1-(q-2)/.4):1);ctx.save();ctx.globalAlpha=a*.55;ctx.fillStyle='#3a0000';ctx.fillRect(0,0,W,H);ctx.globalAlpha=a;ctx.translate(W/2+Math.max(0,.15-q)*900,H/2-40);ctx.rotate(-.12);ctx.fillStyle='#d9381e';ctx.fillRect(-W,-40,W*2,80);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='34px "Dela Gothic One",sans-serif';ctx.fillText('ストライキ!!',0,2);ctx.font='18px "Dela Gothic One",sans-serif';ctx.fillText('+'+hf(Math.floor(strk.n*Math.min(1,q/1.2)))+' 撃破',0,30);ctx.restore()}
  if(ult&&ult.ph===1){ctx.textAlign='center';ctx.fillStyle='#ffd24a';ctx.font='42px "Dela Gothic One",sans-serif';outText(ult.left.toFixed(1),W/2,70,7);ctx.fillStyle='#fff';ctx.font='22px "Dela Gothic One",sans-serif';outText('連打して殴れ!!',W/2,100,5);}
  if(ult&&ult.ph===2&&ult.t<.8){ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='26px "Dela Gothic One",sans-serif';outText('そして時は動き出す…',W/2,H/2-80,6)}
- if(S.bonus){ctx.textAlign='center';ctx.font='20px "Dela Gothic One",sans-serif';ctx.fillStyle='#ffd24a';outText('BONUS TIME ×'+5*S.cc[2],W/2,34,5)}
+ if(S.bonus){ctx.textAlign='center';ctx.font='20px "Dela Gothic One",sans-serif';ctx.fillStyle='#ffd24a';outText('★ BONUS TIME ★ +'+5*S.cc[2],W/2,34,5);ctx.fillStyle='#fff';ctx.font='11px sans-serif';outText('ポイント大幅UP中!',W/2,52,3)}
  buffs.forEach((b,i)=>{ctx.textAlign='left';ctx.font='bold 12px sans-serif';ctx.fillStyle='#ffd24a';outText(b.name+' '+Math.ceil(b.left)+'秒',12,70+i*16,4)});
  if(cutin){const q=cutin.t;ctx.save();ctx.translate(W/2+Math.max(0,.2-q)*900,H/2-60);ctx.rotate(-.1);ctx.fillStyle=cutin.c;ctx.fillRect(-W,-34,W*2,68);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='20px "Dela Gothic One",sans-serif';ctx.fillText(cutin.s,0,10);ctx.restore()}
  if(flash>0){ctx.fillStyle=`rgba(255,255,255,${flash})`;ctx.fillRect(-20,-20,W+40,H+40)}
@@ -439,7 +442,7 @@ function draw(){
 /* ---- roadmap ---- */
 const ov=document.getElementById('ov'),ovb=document.getElementById('ovb');let nodes=[],tz=1.1;
 const hf=n=>n<1e6?n.toLocaleString():fmt(n);
-const fj=n=>n>=1e8?Math.floor(n/1e8)+'億'+Math.floor(n%1e8/1e4)+'万':n.toLocaleString();
+const fj=n=>{if(n<1e8)return n.toLocaleString();let s='';for(const[u,c]of[[1e20,'垓'],[1e16,'京'],[1e12,'兆'],[1e8,'億'],[1e4,'万']]){const q=Math.floor(n/u);if(q>0){s+=q+c;n-=q*u}}return s};
 const DESC={'部下':()=>'自動で武器を投げる部下を雇う。人数が多いほど攻撃が増える(いま'+S.subs+'人)','研修':()=>'部下と巨大部下の威力が+1ずつ上がる(いまLv'+S.train+')','巨大部下':()=>'部下5人で解放。君の攻撃に合わせて強い攻撃を放つ(いま'+S.giants+'人)','巨大Lv':()=>'巨大部下の攻撃が強くなる(いまLv'+S.gl+')',
  '時止めLv':()=>'時止めの連打1発と、最後の一撃が強くなる(いまLv'+S.ult+')','セール':()=>'全ての購入が5%ずつ安くなる。最大30%(いま-'+Math.round((1-DC())*100)+'%)。会心の価格には効かない','ポイント倍率':()=>'獲得ポイントの倍率が+1ずつ増える(購入×'+(1+S.mul)+')',
  '会心解放':()=>'5億ptで解放。会心率4%から始まる。転生しても一生残る','会心率':()=>'会心の出る確率が上がる。転生10回で解放、1レベルごとに転生1回が必要。最大Lv5で20%。転生しても残る(いま'+Math.round(critRate()*100)+'%)','会心倍率':()=>'会心のダメージが+35%ずつ上がる。最大Lv10で500%。転生しても残る(いま'+Math.round(critMul()*100)+'%)。部下・時止め・レーザーにも効く'};
@@ -486,19 +489,21 @@ function openPause(){openOv();ovb.innerHTML='<div class="hd"><span>ポーズ</sp
  g('p4').onclick=()=>{const c=prompt('コピーしたデータを貼り付け');if(!c)return;try{Object.assign(S,JSON.parse(decodeURIComponent(escape(atob(c)))));save();hudDirty=true;dockUI();alert('読み込みました')}catch(e){alert('読み込めませんでした')}}}
 const RANK={project:'joushi-otoshi',key:'AIzaSyCtfqab-S4D8IBq3NMfa0ZSyY-Si3VwduM'};
 const FU=()=>`https://firestore.googleapis.com/v1/projects/${RANK.project}/databases/(default)/documents`;
-const MCOL=()=>'rm'+curKey();let rtab=0,rkind=0;
+const SEASON='s2';
+const RC='ranks_'+SEASON,CC='clubs_'+SEASON,CQ='clubreq_'+SEASON,CV='clubinv_'+SEASON,MCOL=()=>'rm_'+SEASON+'_'+curKey(),CMC=()=>'cm_'+SEASON+'_'+curKey();
+const RK=()=>Math.max(0,S.tot-(S.rbase||0)),RMK=()=>S.mkey===curKey()?Math.max(0,S.mk-(S.mbk===curKey()?S.mbase||0:0)):0;let rtab=0,rkind=0;
 let TOK='',TEXP=0,authP=null;
 async function doAuth(){try{let j;if(S.rf){const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(S.rf)});j=await r.json();if(j.id_token){TOK=j.id_token;TEXP=Date.now()+(+j.expires_in-120)*1000;S.rf=j.refresh_token;save();return}}
  const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/json'},body:'{"returnSecureToken":true}'});j=await r.json();if(j.idToken){TOK=j.idToken;TEXP=Date.now()+(+j.expiresIn-120)*1000;S.rf=j.refreshToken;S.uid=j.localId;save()}}catch(e){}}
 function authReady(){if(TOK&&Date.now()<TEXP)return Promise.resolve();return authP||(authP=doAuth().finally(()=>{authP=null}))}
 async function FX(u,o){o=o||{};await authReady();if(TOK)o.headers=Object.assign({},o.headers||{},{Authorization:'Bearer '+TOK});return fetch(u,o)}
 async function rankList(col){const r=await FX(FU()+':runQuery?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:col}],orderBy:[{field:{fieldPath:'kills'},direction:'DESCENDING'}],limit:50}})});const j=await r.json();return j.filter(x=>x.document).map(x=>({id:x.document.name.split('/').pop(),name:x.document.fields.name.stringValue,kills:+x.document.fields.kills.integerValue}))}
-async function put(col,nm,n){const r=await FX(FU()+'/'+col+'/'+S.uid+'?key='+RANK.key+'&updateMask.fieldPaths=name&updateMask.fieldPaths=kills',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{name:{stringValue:nm},kills:{integerValue:String(n)}}})});return r.ok}
+async function put(col,nm,n){const r=await FX(FU()+'/'+col+'/'+S.uid+'?key='+RANK.key+'&updateMask.fieldPaths=name&updateMask.fieldPaths=kills',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{name:{stringValue:nm},kills:{integerValue:String(Math.floor(Math.min(n,9e18)))}}})});return r.ok}
 async function rankSend(force){if(!S.uid)S.uid=Math.random().toString(36).slice(2,10).toUpperCase();let nm=S.nm;if(!nm||force)nm=(prompt('ニックネーム(12文字まで)',S.nm||'')||'').trim().slice(0,12);if(!nm)return false;S.nm=nm;save();
- const a=await put('ranks',nm,S.tot),b=await put(MCOL(),nm,S.mkey===curKey()?S.mk:0);if(a&&b){S.rt=Date.now();save();if(S.club)clubSync().catch(()=>{})}return a&&b}
+ const a=await put(RC,nm,RK()),b=await put(MCOL(),nm,RMK());if(a&&b){S.rt=Date.now();save();if(S.club)clubSync().catch(()=>{})}return a&&b}
 async function openRank(){if(!RANK.project){alert('ランキングは準備中です');return}
  openOv();ovb.innerHTML='<div class="hd"><span>撃破ランキング</span><button class="x" id="r2">×</button></div><div style="display:flex;gap:6px;margin-bottom:8px"><button class="mn tb'+(rtab?'':' on')+'" id="ta" style="margin:0;height:36px">累計</button><button class="mn tb'+(rtab?' on':'')+'" id="tb" style="margin:0;height:36px">月間</button></div><div style="display:flex;gap:6px;margin-bottom:8px"><button class="mn tb'+(rkind?'':' on')+'" id="ka" style="margin:0;height:36px">個人</button><button class="mn tb'+(rkind?' on':'')+'" id="kb" style="margin:0;height:36px">組合</button></div><div style="font:700 12px sans-serif;margin-bottom:6px;color:#ffd24a">あなた: '+(S.nm||'未設定').replace(/[<>&]/g,'')+' / ID '+S.uid.slice(0,8)+(rtab?'<br>毎月1日 4:00 にリセット':'')+'</div><div id="rl" style="min-height:120px">読み込み中…</div><button class="mn" id="r1">自分の記録を送信</button><button class="mn" id="r3">名前を変更</button>';
- const g=id=>document.getElementById(id),show=async()=>{try{const l=await rankList(rkind?(rtab?'cm'+curKey():'clubs'):(rtab?MCOL():'ranks')),d=g('rl');d.textContent='';l.forEach((x,i)=>{const r=document.createElement('div');r.className='rk r'+Math.min(i+1,11)+(x.id===S.uid?' me':'');const a=document.createElement('span');a.textContent=i+1;const b=document.createElement('span');b.className='nm2';b.textContent=x.name;const c=document.createElement('span');c.textContent=fj(x.kills)+'人';r.append(a,b,c);d.append(r)});if(!l.length)d.textContent='まだ記録がありません'}catch(e){g('rl').textContent='読み込めませんでした'}};
+ const g=id=>document.getElementById(id),show=async()=>{try{const l=await rankList(rkind?(rtab?CMC():CC):(rtab?MCOL():RC)),d=g('rl');d.textContent='';l.forEach((x,i)=>{const r=document.createElement('div');r.className='rk r'+Math.min(i+1,11)+(x.id===S.uid?' me':'');const a=document.createElement('span');a.textContent=i+1;const b=document.createElement('span');b.className='nm2';b.textContent=x.name;const c=document.createElement('span');c.textContent=fj(x.kills)+'人';r.append(a,b,c);d.append(r)});if(!l.length)d.textContent='まだ記録がありません'}catch(e){g('rl').textContent='読み込めませんでした'}};
  g('ka').onclick=()=>{rkind=0;openRank()};g('kb').onclick=()=>{rkind=1;openRank()};g('ta').onclick=()=>{rtab=0;openRank()};g('tb').onclick=()=>{rtab=1;openRank()};
  g('r1').onclick=async()=>{try{if(await rankSend())await show();else alert('送信できませんでした')}catch(e){alert('送信できませんでした')}};
  g('r3').onclick=async()=>{try{if(await rankSend(1))openRank()}catch(e){alert('送信できませんでした')}};g('r2').onclick=closeOv;show()}
@@ -513,40 +518,40 @@ async function fget(path){const r=await FX(FU()+'/'+path+'?key='+RANK.key);retur
 async function flist(path){const r=await FX(FU()+'/'+path+'?key='+RANK.key+'&pageSize=30');const j=await r.json();return(j.documents||[]).map(dv)}
 const eqf=(f,v)=>({fieldFilter:{field:{fieldPath:f},op:'EQUAL',value:{stringValue:v}}});
 function needName(){if(!S.nm){const n=(prompt('ニックネーム(12文字まで)')||'').trim().slice(0,12);if(!n)return false;S.nm=n;save()}return true}
-async function clubSync(){if(!S.club)return;const ck=curKey(),mk=S.mkey===ck?S.mk:0;await fset('clubs/'+S.club+'/m/'+S.uid,{name:S.nm||'名無し',kills:S.tot,mk,mkey:ck});const ms=await flist('clubs/'+S.club+'/m'),cl=await fget('clubs/'+S.club);if(!cl)return;
- await fset('clubs/'+S.club,{name:cl.name,leader:cl.leader,n:ms.length,kills:ms.reduce((a,m)=>a+m.kills,0)});await fset('cm'+ck+'/'+S.club,{name:cl.name,kills:ms.reduce((a,m)=>a+(m.mkey===ck?m.mk:0),0)})}
+async function clubSync(){if(!S.club)return;const ck=curKey(),mk=RMK();await fset(CC+'/'+S.club+'/m/'+S.uid,{name:S.nm||'名無し',kills:RK(),mk,mkey:ck});const ms=await flist(CC+'/'+S.club+'/m'),cl=await fget(CC+'/'+S.club);if(!cl)return;
+ await fset(CC+'/'+S.club,{name:cl.name,leader:cl.leader,n:ms.length,kills:ms.reduce((a,m)=>a+m.kills,0)});await fset(CMC()+'/'+S.club,{name:cl.name,kills:ms.reduce((a,m)=>a+(m.mkey===ck?m.mk:0),0)})}
 async function cclub(){if(!needName())return;const nm=(prompt('組合の名前(12文字まで)')||'').trim().slice(0,12);if(!nm)return;const cid=Math.random().toString(36).slice(2,8),ck=curKey();
- if(await fset('clubs/'+cid,{name:nm,leader:S.uid,n:1,kills:S.tot})&&await fset('clubs/'+cid+'/m/'+S.uid,{name:S.nm,kills:S.tot,mk:S.mkey===ck?S.mk:0,mkey:ck})){S.club=cid;S.cname=nm;save();await clubSync().catch(()=>{})}else alert('作成できませんでした');openClub()}
+ if(await fset(CC+'/'+cid,{name:nm,leader:S.uid,n:1,kills:RK()})&&await fset(CC+'/'+cid+'/m/'+S.uid,{name:S.nm,kills:RK(),mk:RMK(),mkey:ck})){S.club=cid;S.cname=nm;save();await clubSync().catch(()=>{})}else alert('作成できませんでした');openClub()}
 async function sclub(){const q=(prompt('組合名で検索(前方一致)')||'').trim();if(!q)return;
- const r=await fq({from:[{collectionId:'clubs'}],where:{compositeFilter:{op:'AND',filters:[{fieldFilter:{field:{fieldPath:'name'},op:'GREATER_THAN_OR_EQUAL',value:{stringValue:q}}},{fieldFilter:{field:{fieldPath:'name'},op:'LESS_THAN_OR_EQUAL',value:{stringValue:q+'\uf8ff'}}}]}},limit:10});
+ const r=await fq({from:[{collectionId:CC}],where:{compositeFilter:{op:'AND',filters:[{fieldFilter:{field:{fieldPath:'name'},op:'GREATER_THAN_OR_EQUAL',value:{stringValue:q}}},{fieldFilter:{field:{fieldPath:'name'},op:'LESS_THAN_OR_EQUAL',value:{stringValue:q+'\uf8ff'}}}]}},limit:10});
  ovb.innerHTML='<div class="hd"><span>検索結果</span><button class="x" id="cx">×</button></div>';document.getElementById('cx').onclick=openClub;
  if(!r.length)ovb.append(H$('div',null,'見つかりません'));
- r.forEach(c=>ovb.append(mbtn(c.name+' ('+c.n+'/15人) 申請する',async()=>{if(c.n>=15){alert('満員です');return}if(!needName())return;if(await fset('clubreq/'+c._id+'_'+S.uid,{cid:c._id,uid:S.uid,name:S.nm,cname:c.name})){S.reqs=[...(S.reqs||[]),c._id];save();alert('申請しました。代表の承認を待ってね')}openClub()})))}
-async function joinClub(cid,cn,inv){const ms=await flist('clubs/'+cid+'/m');if(ms.length>=15){alert('満員です');return}if(!needName())return;const ck=curKey();
- if(await fset('clubs/'+cid+'/m/'+S.uid,{name:S.nm,kills:S.tot,mk:S.mkey===ck?S.mk:0,mkey:ck})){await fdel('clubinv/'+inv);S.club=cid;S.cname=cn;S.reqs=[];save();await clubSync().catch(()=>{})}openClub()}
-async function approve(q,n){if(n>=15){alert('満員です');return}if(await fset('clubs/'+S.club+'/m/'+q.uid,{name:q.name,kills:0,mk:0,mkey:0}))await fdel('clubreq/'+q._id);await clubSync().catch(()=>{});openClub()}
+ r.forEach(c=>ovb.append(mbtn(c.name+' ('+c.n+'/15人) 申請する',async()=>{if(c.n>=15){alert('満員です');return}if(!needName())return;if(await fset(CQ+'/'+c._id+'_'+S.uid,{cid:c._id,uid:S.uid,name:S.nm,cname:c.name})){S.reqs=[...(S.reqs||[]),c._id];save();alert('申請しました。代表の承認を待ってね')}openClub()})))}
+async function joinClub(cid,cn,inv){const ms=await flist(CC+'/'+cid+'/m');if(ms.length>=15){alert('満員です');return}if(!needName())return;const ck=curKey();
+ if(await fset(CC+'/'+cid+'/m/'+S.uid,{name:S.nm,kills:RK(),mk:RMK(),mkey:ck})){await fdel(CV+'/'+inv);S.club=cid;S.cname=cn;S.reqs=[];save();await clubSync().catch(()=>{})}openClub()}
+async function approve(q,n){if(n>=15){alert('満員です');return}if(await fset(CC+'/'+S.club+'/m/'+q.uid,{name:q.name,kills:0,mk:0,mkey:0}))await fdel(CQ+'/'+q._id);await clubSync().catch(()=>{});openClub()}
 async function checkClubLink(){const cid=new URLSearchParams(location.search).get('club');if(!cid)return;history.replaceState(null,'',location.pathname);if(cid===S.club)return;
- try{const c=await fget('clubs/'+cid);if(!c)return;if(c.n>=15){alert('「'+c.name+'」は満員です');return}if(!confirm('労働者組合「'+c.name+'」に参加申請しますか?'))return;if(!needName())return;
-  if(await fset('clubreq/'+cid+'_'+S.uid,{cid,uid:S.uid,name:S.nm,cname:c.name})){S.reqs=[...(S.reqs||[]),cid];save();alert('申請しました。代表の承認を待ってね')}}catch(e){}}
-async function inviteP(){const id=(prompt('招待するプレイヤーのID')||'').trim();if(!id)return;if(await fset('clubinv/'+id+'_'+S.club,{uid:id,cid:S.club,cname:S.cname}))alert('招待を送りました');else alert('送れませんでした')}
+ try{const c=await fget(CC+'/'+cid);if(!c)return;if(c.n>=15){alert('「'+c.name+'」は満員です');return}if(!confirm('労働者組合「'+c.name+'」に参加申請しますか?'))return;if(!needName())return;
+  if(await fset(CQ+'/'+cid+'_'+S.uid,{cid,uid:S.uid,name:S.nm,cname:c.name})){S.reqs=[...(S.reqs||[]),cid];save();alert('申請しました。代表の承認を待ってね')}}catch(e){}}
+async function inviteP(){const id=(prompt('招待するプレイヤーのID')||'').trim();if(!id)return;if(await fset(CV+'/'+id+'_'+S.club,{uid:id,cid:S.club,cname:S.cname}))alert('招待を送りました');else alert('送れませんでした')}
 async function shareClub(){const text='労働者組合「'+S.cname+'」メンバー募集中!\n組合名で検索してリンクから参加申請できるよ\n'+location.origin+location.pathname+'?club='+S.club;try{if(navigator.share){await navigator.share({text});return}}catch(e){return}prompt('コピーして共有してね',text)}
 async function leaveClub(ms,lead){if(lead&&ms.length>1){alert('メンバーがいる間は解散できません');return}if(!confirm(lead?'組合を解散しますか?':'脱退しますか?'))return;
- await fdel('clubs/'+S.club+'/m/'+S.uid);if(lead){await fdel('clubs/'+S.club);await fdel('cm'+curKey()+'/'+S.club)}S.club='';S.cname='';save();openClub()}
+ await fdel(CC+'/'+S.club+'/m/'+S.uid);if(lead){await fdel(CC+'/'+S.club);await fdel(CMC()+'/'+S.club)}S.club='';S.cname='';save();openClub()}
 async function openClub(){if(!RANK.project){alert('準備中です');return}openOv();ovb.innerHTML='<div class="hd"><span>労働者組合</span><button class="x" id="cx">×</button></div><div id="cb">読み込み中…</div>';document.getElementById('cx').onclick=closeOv;const cb=document.getElementById('cb');
  const add=(...e)=>cb.append(...e),line=s=>{const d=H$('div',null,s);d.style.cssText='font:700 13px sans-serif;margin:6px 0';return d};
  try{
-  for(const c of(S.reqs||[])){const m=await fget('clubs/'+c+'/m/'+S.uid);if(m){const cl=await fget('clubs/'+c);S.club=c;S.cname=cl?cl.name:'';S.reqs=[];save();break}}
+  for(const c of(S.reqs||[])){const m=await fget(CC+'/'+c+'/m/'+S.uid);if(m){const cl=await fget(CC+'/'+c);S.club=c;S.cname=cl?cl.name:'';S.reqs=[];save();break}}
   cb.textContent='';
   if(!S.club){add(line('あなたのID: '+S.uid.slice(0,8)+'(招待してもらうときに伝えてね)'),mbtn('組合を作る',cclub),mbtn('組合を探す',sclub));
-   const inv=await fq({from:[{collectionId:'clubinv'}],where:eqf('uid',S.uid.slice(0,8)),limit:10});
+   const inv=await fq({from:[{collectionId:CV}],where:eqf('uid',S.uid.slice(0,8)),limit:10});
    if(inv.length)add(line('招待が届いています'));inv.forEach(v=>add(mbtn(v.cname+' に参加する',()=>joinClub(v.cid,v.cname,v._id))));
    if((S.reqs||[]).length)add(line('申請中: '+S.reqs.length+'件'))}
-  else{const cl=await fget('clubs/'+S.club);if(!cl){S.club='';save();return openClub()}S.cname=cl.name;
-   const ms=await flist('clubs/'+S.club+'/m'),lead=cl.leader===S.uid;
+  else{const cl=await fget(CC+'/'+S.club);if(!cl){S.club='';save();return openClub()}S.cname=cl.name;
+   const ms=await flist(CC+'/'+S.club+'/m'),lead=cl.leader===S.uid;
    add(line(cl.name+' ('+ms.length+'/15人)'));
    ms.sort((a,b)=>b.kills-a.kills).forEach(m=>{const r=H$('div','rk');r.append(H$('span',null,''),H$('span','nm2',m.name+(m._id===cl.leader?'(代表)':'')),H$('span',null,fj(m.kills)+'人'));cb.append(r)});
-   if(lead){const rq=await fq({from:[{collectionId:'clubreq'}],where:eqf('cid',S.club),limit:15});if(rq.length)add(line('参加申請'));
-    rq.forEach(q=>add(mbtn('承認: '+q.name,()=>approve(q,ms.length)),mbtn('拒否',()=>fdel('clubreq/'+q._id).then(openClub))));add(mbtn('プレイヤーIDで招待',inviteP))}
+   if(lead){const rq=await fq({from:[{collectionId:CQ}],where:eqf('cid',S.club),limit:15});if(rq.length)add(line('参加申請'));
+    rq.forEach(q=>add(mbtn('承認: '+q.name,()=>approve(q,ms.length)),mbtn('拒否',()=>fdel(CQ+'/'+q._id).then(openClub))));add(mbtn('プレイヤーIDで招待',inviteP))}
    add(mbtn('組合をシェア',shareClub),mbtn(lead?'解散(1人のときだけ)':'脱退',()=>leaveClub(ms,lead)))}
  }catch(e){cb.textContent='読み込めませんでした'}}
 const pct=p=>(p*100).toFixed(7).replace(/\.?0+$/,'')+'%';
@@ -572,7 +577,7 @@ document.getElementById('lv').onclick=openLv;document.getElementById('cl').addEv
 document.getElementById('rk').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openRank()});
 document.getElementById('pz').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openPause()});
 document.getElementById('rb').onclick=()=>{if(!confirm('転生しますか?\n・ポイント倍率が×'+2*(2+S.rb)+'になります\n・自動レーザーがLv'+(S.rb+1)+'になります\n・ポイント、武器、部下、レベルはリセットされます'))return;
- S.rb++;S.pts=0;S.owned=[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];S.eq=0;S.subs=S.giants=S.train=S.ult=S.mul=S.dc=S.gl=0;proj.length=0;flying.length=0;save();hudDirty=true;dockUI();sfx('levelup');if(S.rb>=5)openCards();texts.push({x:W/2,y:H/2,s:'転生!!',l:1.2,sc:1.2,rot:0,c:'#ffd24a',up:1})};
+ S.rb++;S.pts=0;S.owned=[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];S.eq=0;S.subs=S.giants=S.train=S.ult=S.mul=S.dc=S.gl=0;proj.length=0;flying.length=0;save();hudDirty=true;dockUI();sfx('levelup');if(S.rb>=5&&S.rb%5===0)openCards();texts.push({x:W/2,y:H/2,s:'転生!!',l:1.2,sc:1.2,rot:0,c:'#ffd24a',up:1})};
 const ub=document.getElementById('ult');
 ub.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();ultGo()});
 document.getElementById('stage').addEventListener('pointerdown',e=>{hold=true;e.preventDefault();punch()});
@@ -632,6 +637,7 @@ intro.addEventListener('pointerdown',e=>{if(t1.hidden)return;e.preventDefault();
 document.getElementById('ok').addEventListener('click',()=>{if(tp<2){tp++;showTP()}else begin()});document.getElementById('bk').addEventListener('click',()=>{tp=Math.max(0,tp-1);showTP()});
 document.getElementById('rec').textContent=S.tot?'撃破 '+hf(S.tot)+'人 ・ つづきから':'';
 if(!S.uid)S.uid=Math.random().toString(36).slice(2,10).toUpperCase();
+if(S.season!==SEASON){S.season=SEASON;S.rbase=S.tot;S.mbk=curKey();S.mbase=S.mkey===curKey()?S.mk:0;S.club='';S.cname='';S.reqs=[];S.rt=0}
 if(S.card&&!S.cc[S.card])S.cc[S.card]=Math.max(1,S.rb);authReady();
 dockUI();draw();requestAnimationFrame(loop);
 </script>

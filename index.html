@@ -91,6 +91,9 @@ body,#stage,canvas{-webkit-touch-callout:none;-webkit-user-select:none;user-sele
 .r4{background:#d8c8ff;border-color:#5b3fb0}.r5{background:#c8e0ff;border-color:#2f6fb0}.r6{background:#c8f0e0;border-color:#2f8a64}.r7{background:#e8f0c0;border-color:#6a8a2f}.r8{background:#f6e0b8;border-color:#a8742f}.r9{background:#f6d0d0;border-color:#a84a4a}.r10{background:#eee;border-color:#777}
 .rk.me{outline:3px solid #35d0ff}@keyframes gl{to{box-shadow:0 0 26px #fff3a0}}.tb.on{background:#d9381e;color:#fff}
 #dock .bt{font-size:14px}
+#nds{font:700 12px/1.5 sans-serif;background:#2b1d16;border-radius:8px;padding:8px;margin:0 0 8px;min-height:44px;color:#f6edd8}
+#ovb .hd{position:sticky;top:-10px;z-index:3;background:#3b2a1e;padding:8px 0;margin:-10px 0 8px}
+.fr .lv{font:700 11px sans-serif;font-style:normal;color:#d9381e}
 </style>
 </head>
 <body>
@@ -123,18 +126,26 @@ const WP=[
  {n:'神の鉄槌',cost:100000000,k:400,cd:.12,sc:1.5}
 ];
 const SPIN=[1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0];
-let S={pts:0,tot:0,owned:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],eq:0,subs:0,giants:0,train:0,ult:0,mul:0,rb:0,seen:0,dc:0,cc:{1:0,2:0,3:0},gl:0,card:0,days:0,bonus:0,mk:0,mkey:0};
+let S={pts:0,tot:0,owned:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],eq:0,subs:0,giants:0,train:0,ult:0,mul:0,rb:0,seen:0,dc:0,cc:{1:0,2:0,3:0},st:{pm:0,crit:0},ach:{},dex:{},gl:0,card:0,days:0,bonus:0,mk:0,mkey:0};
 try{const d=JSON.parse(localStorage.getItem('jyoushi3')||'{}');Object.assign(S,d);while(S.owned.length<16)S.owned.push(0)}catch(e){}
 let dirtySave=false;const save=()=>{try{localStorage.setItem('jyoushi3',JSON.stringify(S))}catch(e){}dirtySave=false;LS=new Date()};
 const hireCost=()=>Math.floor(25*Math.pow(1.28,S.subs)),giantCost=()=>Math.floor(4000*Math.pow(1.55,S.giants)),trainCost=()=>Math.floor(120*Math.pow(2.3,S.train));
 const curKey=()=>{const d=new Date(Date.now()+5*36e5);return d.getUTCFullYear()*100+d.getUTCMonth()+1};
-const nightF=()=>{const p=clock%60;return p<25?0:p<30?(p-25)/5:p<55?1:(60-p)/5};
-const critRate=()=>S.cr?.04+(S.crl||0)*.032:0,critMul=()=>1.5+(S.cml||0)*.35;
-const PM=()=>2*(1+S.rb)*(1+S.mul)*(S.card===1&&nightF()>.5?1+S.cc[1]:1)*(S.card===2&&S.bonus?5*S.cc[2]:1);
+const nightF=()=>{const p=dayT%60;return p<25?0:p<30?(p-25)/5:p<55?1:(60-p)/5};
+const critRate=()=>S.cr?.04+(S.crl||0)*.032+ba('crit'):0,critMul=()=>1.5+(S.cml||0)*.35;
+const PM=()=>2*(1+S.rb)*(1+S.mul)*(S.cc[1]>0&&nightF()>.5?1+S.cc[1]:1)*(S.cc[2]>0&&S.bonus?5*S.cc[2]:1)*bv('pm');
 const HAIR=['#3a3a3a','#8a8a8a','#e6e6e6','#5a3a22'];
 let stack=[],flying=[],proj=[],parts=[],texts=[],fxs=[],counter=0,cd=0,shake=0,freeze=0,ts=1,flash=0,hold=false,key=false,pl=0;
 let combo=0,comboT=0,pop=0,charge=0,ult=null,acc1=0,acc2=0,clock=0,hudDirty=true,hudT=0,shopT=0,lastCharge=-1,lastS=0;
-function mk(y){const i=counter++,b=Math.floor(i/4);return{t:[4,3,1,0][i%4],hue:[220,200,30,150,0,260][b%6],hair:HAIR[(b*3)%4],y}}
+const RB=[{n:'係長',p:5e-2,h:30,t:'pm',v:2,d:60,bn:'ポイント×2(60秒)'},{n:'課長',p:2e-2,h:120,t:'pts',m:50,bn:'ボーナスポイント'},{n:'次長',p:1e-2,h:180,t:'atk',v:2,d:60,bn:'攻撃力×2(60秒)'},{n:'部長',p:2e-3,h:200,t:'pm',v:3,d:120,bn:'ポイント×3(120秒)'},
+ {n:'取締役',p:5e-4,h:280,t:'spd',v:1.5,d:120,bn:'連射×1.5(120秒)'},{n:'専務',p:1e-4,h:320,t:'crit',v:.1,d:180,bn:'会心率+10%(180秒)'},{n:'常務',p:2e-5,h:340,t:'atk',v:3,d:180,bn:'攻撃力×3(180秒)'},{n:'社長',p:5e-6,h:50,t:'pts',m:1000,bn:'1000倍ポイント'},
+ {n:'会長',p:1e-6,h:60,t:'pm',v:5,d:300,bn:'ポイント×5(300秒)'},{n:'創業者',p:2e-7,h:100,t:'atk',v:5,d:300,bn:'攻撃力×5(300秒)'},{n:'大株主',p:5e-8,h:160,t:'pm',v:10,d:300,bn:'ポイント×10(300秒)'},{n:'社外取締役',p:1e-8,h:240,t:'spd',v:2,d:600,bn:'連射×2(600秒)'},{n:'上司神',p:1e-9,h:0,t:'pts',m:100000,bn:'10万倍ポイント'}];
+function rollRare(){let u=Math.random(),c=0;for(let i=RB.length-1;i>=0;i--){c+=RB[i].p;if(u<c)return i}return null}
+let curRare=null;
+const bv=t=>{let m=1;for(const b of buffs)if(b.t===t)m*=b.v;return m},ba=t=>{let m=0;for(const b of buffs)if(b.t===t)m+=b.v;return m};
+function onRare(i){const r=RB[i];S.dex[i]=(S.dex[i]||0)+1;if(r.t==='pts')S.pts+=Math.floor(r.m*PM()*20);else{buffs=buffs.filter(b=>b.t!==r.t);buffs.push({t:r.t,v:r.v,left:r.d,name:r.bn})}
+ cutin={t:0,s:(S.dex[i]===1?'NEW! ':'')+r.n+'撃破! '+r.bn,c:'#7a5cff'};hudDirty=true;sfx('levelup')}
+function mk(y){const i=counter++,b=Math.floor(i/4);if(i%4===0)curRare=rollRare();const R=curRare!=null?RB[curRare]:null;return{t:[4,3,1,0][i%4],hue:R?R.h:[220,200,30,150,0,260][b%6],hair:R?'#ffd24a':HAIR[(b*3)%4],rare:curRare,y}}
 const slotY=i=>GROUND-(i+1)*BH;
 function fill(){while(stack.length<14){const top=stack.length?stack[stack.length-1].y:GROUND;stack.push(mk(top-BH))}}
 for(let i=0;i<14;i++)stack.push(mk(slotY(i)));
@@ -189,7 +200,7 @@ const SPR={};
 function drawBlock(b,x,y,rot,hurt){
  const k=b.t+'-'+b.hue+'-'+b.hair+hurt;
  const s=SPR[k]||(SPR[k]=sprite(BW+20,BH+10,()=>{ctx.translate(10,5);rawBlock(b,hurt)}));
- if(!rot){ctx.drawImage(s,x-10,y-5,BW+20,BH+10);return}
+ if(!rot){ctx.drawImage(s,x-10,y-5,BW+20,BH+10);if(b.rare!=null){ctx.globalCompositeOperation='lighter';ctx.fillStyle='rgba(255,220,100,'+(.12+.1*Math.sin(clock*8+y*.05)).toFixed(3)+')';ctx.fillRect(x,y,BW,BH);ctx.globalCompositeOperation='source-over'}return}
  ctx.save();ctx.translate(x+BW/2,y+BH/2);ctx.rotate(rot);ctx.drawImage(s,-BW/2-10,-BH/2-5,BW+20,BH+10);ctx.restore();
 }
 function emp(x,y,s,col,tie,thr,hair,wide){
@@ -264,7 +275,7 @@ const TC=['#fff','#d9a27a','#cfd6dd','#e6edf5','#ff9a2e','#ffd24a','#ff9a2e','#3
 const fmt=n=>n>=1e8?+(n/1e8).toFixed(1)+'億':n>=1e4?+(n/1e4).toFixed(1)+'万':n.toLocaleString();
 const GL={};function glow(c){return GL[c]||(GL[c]=sprite(64,64,()=>{const g=ctx.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,c);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,64,64)}))}
 let fireN=0;
-function fire(){const w=WP[S.eq],c=TC[S.eq],t=Math.min(1,S.eq/15);cd=w.cd;pl=.12;throwP(60,GROUND+2,S.eq,w.k,false,w.sc);
+function fire(){const w=WP[S.eq],c=TC[S.eq],t=Math.min(1,S.eq/15);cd=w.cd/bv('spd');pl=.12;throwP(60,GROUND+2,S.eq,w.k,false,w.sc);
  sfx('throw',S.eq);if(S.giants>0&&proj.length<60)throwP(GX[0]+24,GROUND-4,2,Math.ceil((6+2*S.train)*(1+S.gl*.6)*(1+S.giants*.3)),true,1.5);
  shake=Math.max(shake,1+S.eq*.5);if(S.eq>=5&&(fireN&3)===0)flash=Math.max(flash,.03+t*.06);
  if(fxs.length<8)fxs.push({x:66,y:GROUND+2,l:.2,R:30+S.eq*5,c});
@@ -273,13 +284,15 @@ function fire(){const w=WP[S.eq],c=TC[S.eq],t=Math.min(1,S.eq/15);cd=w.cd;pl=.12
 }
 const ONO=['ドガッ!','バキッ!','ズバン!','ガツン!','ボコッ!'],ONOB=['ドカーン!!','ズドォン!!','メリメリ!!'],ORA=['オラ!','オラァ!','オラオラ!'],fists=[];
 function hit(k,o){
- if(S.cr&&!o.sub&&!o.punch&&!o.ult&&Math.random()<critRate()){k=Math.ceil(k*critMul());flash=Math.max(flash,.3);shake=Math.max(shake,14);sfx('bighit');
-  texts.push({x:CX-BW/2+80,y:GROUND-BH*2.2,s:'CRITICAL ×'+critMul().toFixed(1),l:1,sc:.95,rot:-.12,c:'#ff2e2e',up:1});
-  if(fxs.length<6)fxs.push({x:CX-BW/2,y:GROUND-BH*1.5,l:.3,R:160,c:'#ff2e2e'});
+ k=Math.ceil(k*bv('atk'));
+ if(S.cr&&(o.sub||o.ult))k=Math.ceil(k*(1+critRate()*(critMul()-1)));
+ if(S.cr&&!o.sub&&!o.ult&&Math.random()<critRate()){k=Math.ceil(k*critMul());S.st.crit=(S.st.crit||0)+1;if(!o.punch){flash=Math.max(flash,.3);shake=Math.max(shake,14);sfx('bighit')}
+  if(texts.length<8&&(!o.punch||Math.random()<.2))texts.push({x:CX-BW/2+80,y:GROUND-BH*2.2,s:'CRITICAL ×'+critMul().toFixed(1),l:1,sc:.95,rot:-.12,c:'#ffd24a',up:1});
+  if(fxs.length<6)fxs.push({x:CX-BW/2,y:GROUND-BH*1.5,l:.3,R:160,c:'#ffd24a'});
   for(let i=0;i<24&&parts.length<120;i++)parts.push({x:CX-BW/2,y:GROUND-BH*1.5,vx:(Math.random()-.2)*1000,vy:(Math.random()-.5)*900,l:.7,s:3+Math.random()*4,c:['#ff2e2e','#ffd24a','#fff'][i%3],star:1})}
  const cnt=o.cnt||1;combo+=cnt;comboT=1.6;pop=1;
  const mult=PM(),ke=Math.min(k,o.sub?8:30),big=ke>=5||o.ult,hy=GROUND-BH*Math.min(ke,5)/2;
- for(let i=0;i<k;i++){if(!stack.length)fill();const b=stack.shift();if(i<16&&flying.length<40)flying.push({b,x:CX-BW/2,y:b.y,vx:550+Math.random()*700+i*30,vy:-300-Math.random()*500-(o.ult?300:0),r:0,vr:(Math.random()-.3)*16})}
+ for(let i=0;i<k;i++){if(!stack.length)fill();const b=stack.shift();if(b.rare!=null&&b.t===0)onRare(b.rare);if(i<16&&flying.length<40)flying.push({b,x:CX-BW/2,y:b.y,vx:550+Math.random()*700+i*30,vy:-300-Math.random()*500-(o.ult?300:0),r:0,vr:(Math.random()-.3)*16})}
  fill();
  S.pts+=Math.floor(k*mult);S.tot+=k;{const ck=curKey();S.mk=(S.mkey===ck?S.mk:0)+k;S.mkey=ck}dirtySave=true;hudDirty=true;
  const q=o.sub?.5:1;
@@ -315,10 +328,10 @@ function drawLaser(){const on=lzC>=1,ch=lzC<1?lzC:1,y=GROUND-BH/2,x0=34,x1=CX-BW
   ctx.drawImage(glow('#35d0ff'),x1-50,y-50,100,100);ctx.globalCompositeOperation='source-over';
   if(parts.length<90)parts.push({x:x1,y:y+(Math.random()-.5)*20,vx:(Math.random()-.2)*500,vy:(Math.random()-.5)*500,l:.35,s:2+Math.random()*3,c:'#9ff',tr:1})}
  ctx.restore()}
-let lastDay=0,cutin=null;
+let lastDay=0,cutin=null,dayT=0,buffs=[];
 function onDawn(){S.days++;dirtySave=true;
- if(S.card===2){if(S.bonus)S.bonus=0;else if(S.days%30===0){S.bonus=1;cutin={t:0,s:'ボーナスタイム!!',c:'#e89a00'}}}
- if(S.card===3&&S.days%10===0){const n=S.subs*1000*(S.cc[3]+1),ck=curKey();S.tot+=n;S.mk=(S.mkey===ck?S.mk:0)+n;S.mkey=ck;hudDirty=true;cutin={t:0,s:'ストライキ!! +'+hf(n)+'撃破',c:'#d9381e'}}}
+ if(S.cc[2]>0){if(S.bonus)S.bonus=0;else if(S.days%5===0){S.bonus=1;cutin={t:0,s:'ボーナスタイム!!',c:'#e89a00'}}}
+ if(S.cc[3]>0&&S.days%5===0){const n=S.subs*1000*(S.cc[3]+1),ck=curKey();S.tot+=n;S.mk=(S.mkey===ck?S.mk:0)+n;S.mkey=ck;hudDirty=true;cutin={t:0,s:'ストライキ!! +'+hf(n)+'撃破',c:'#d9381e'}}}
 function drawSky(){const n=nightF();
  if(n>0){ctx.fillStyle='rgba(12,20,70,'+(.55*n).toFixed(3)+')';ctx.fillRect(0,0,W,H);
   if(n>.4){ctx.globalAlpha=n;ctx.fillStyle='#fff';for(let i=0;i<9;i++)ctx.fillRect(20+(i*37)%80,56+(i*53)%50,2,2);ctx.fillStyle='#ffe9a8';ctx.beginPath();ctx.arc(88,70,9,0,7);ctx.fill();ctx.globalAlpha=1}}
@@ -345,15 +358,15 @@ function drawStand(){
 }
 function loop(now){
  if(paused){last=now;requestAnimationFrame(loop);return}
- const rdt=Math.min(.05,(now-last)/1000);last=now;clock+=rdt;
- const dn=Math.floor(clock/60);if(dn>lastDay){lastDay=dn;onDawn()}if(cutin){cutin.t+=rdt;if(cutin.t>1.8)cutin=null}
+ const rdt=Math.min(.05,(now-last)/1000);last=now;clock+=rdt;if(!(ult&&ult.ph<2))dayT+=rdt;
+ const dn=Math.floor(dayT/60);if(dn>lastDay){lastDay=dn;onDawn()}if(cutin){cutin.t+=rdt;if(cutin.t>1.8)cutin=null}
  if(freeze>0)freeze-=rdt;
- const dt=freeze>0?0:rdt*ts,stopped=!!(ult&&ult.ph<2),wd=stopped?0:dt,sd=stopped?rdt*.12:dt,td=stopped?rdt:dt;
+ const dt=freeze>0?0:rdt*ts,stopped=!!(ult&&ult.ph<2),wd=stopped?0:dt,sd=stopped?rdt*.12:dt,td=stopped?rdt:dt;for(const b of buffs)b.left-=stopped?0:rdt;buffs=buffs.filter(b=>b.left>0);
  if(!ult)charge=Math.min(1,charge+rdt/20);
  const cp=Math.round(charge*100);if(cp!==lastCharge){lastCharge=cp;if(cp>=100)sfx('levelup');ub.style.setProperty('--p',cp);ub.classList.toggle('rdy',cp>=100)}
  if(ult){ult.t+=rdt;ult.gt-=rdt;
   if(ult.ph===0){if(ult.t>=.9){ult.ph=1;ult.t=0;flash=.8;sfx('bighit')}}
-  else if(ult.ph===1){ult.left-=rdt;if(ult.left<=0){ult.ph=2;ult.t=0;texts.length=0;texts.push({x:W/2,y:H/2-10,s:ult.n+' HIT!!',l:1.8,sc:1.7,rot:-.08,c:'#ffd24a',up:1});for(let i=0;i<40&&parts.length<150;i++)parts.push({x:W/2,y:H/2,vx:(Math.random()-.5)*900,vy:(Math.random()-.5)*900,l:.7,s:3+Math.random()*4,c:['#ffd24a','#fff','#ff7a1e'][i%3],star:i%2});hit(Math.min(400,10+ult.n*(2+S.ult*2)),{ult:true});sfx('release')}}
+  else if(ult.ph===1){ult.left-=rdt;if(ult.left<=0){ult.ph=2;ult.t=0;S.st.pm=Math.max(S.st.pm||0,ult.n);texts.length=0;texts.push({x:W/2,y:H/2-10,s:ult.n+' HIT!!',l:1.8,sc:1.7,rot:-.08,c:'#ffd24a',up:1});for(let i=0;i<40&&parts.length<150;i++)parts.push({x:W/2,y:H/2,vx:(Math.random()-.5)*900,vy:(Math.random()-.5)*900,l:.7,s:3+Math.random()*4,c:['#ffd24a','#fff','#ff7a1e'][i%3],star:i%2});hit(Math.min(400,10+ult.n*(2+S.ult*2)),{ult:true});sfx('release')}}
   else if(ult.t>.9){ult=null}}
  cd-=dt;pl-=dt;
  if((hold||key)&&cd<=0&&!ult)fire();
@@ -370,7 +383,7 @@ function loop(now){
  for(let i=fists.length-1;i>=0;i--){fists[i].l-=rdt;if(fists[i].l<=0)fists.splice(i,1)}
  comboT-=rdt;if(comboT<=0)combo=0;pop=Math.max(0,pop-rdt*6);flash=Math.max(0,flash-rdt*2.5);shake*=Math.pow(.0004,rdt);
  hudT-=rdt;if(hudT<=0){hudT=.12;if(hudDirty){hudDirty=false;const hf=n=>n<1e6?n.toLocaleString():fmt(n);document.getElementById('pts').textContent=hf(S.pts);document.getElementById('tot').textContent=hf(S.tot)}}
- shopT-=rdt;if(shopT<=0){shopT=.3;if(dirtySave&&shopT>0)save2+=1;if(save2>=7){save2=0;save()}}
+ shopT-=rdt;if(shopT<=0){shopT=.3;chkAch();if(dirtySave&&shopT>0)save2+=1;if(save2>=7){save2=0;save()}}
  draw();requestAnimationFrame(loop);
 }
 let last=performance.now(),save2=0;
@@ -417,7 +430,8 @@ function draw(){
  if(ult&&ult.ph===1){ctx.textAlign='center';ctx.fillStyle='#ffd24a';ctx.font='42px "Dela Gothic One",sans-serif';outText(ult.left.toFixed(1),W/2,70,7);ctx.fillStyle='#fff';ctx.font='22px "Dela Gothic One",sans-serif';outText('連打して殴れ!!',W/2,100,5);}
  if(ult&&ult.ph===2&&ult.t<.8){ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='26px "Dela Gothic One",sans-serif';outText('そして時は動き出す…',W/2,H/2-80,6)}
  if(S.bonus){ctx.textAlign='center';ctx.font='20px "Dela Gothic One",sans-serif';ctx.fillStyle='#ffd24a';outText('BONUS TIME ×'+5*S.cc[2],W/2,34,5)}
- if(cutin){const q=cutin.t;ctx.save();ctx.translate(W/2+Math.max(0,.2-q)*900,H/2-60);ctx.rotate(-.1);ctx.fillStyle=cutin.c;ctx.fillRect(-W,-34,W*2,68);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='24px "Dela Gothic One",sans-serif';ctx.fillText(cutin.s,0,10);ctx.restore()}
+ buffs.forEach((b,i)=>{ctx.textAlign='left';ctx.font='bold 12px sans-serif';ctx.fillStyle='#ffd24a';outText(b.name+' '+Math.ceil(b.left)+'秒',12,70+i*16,4)});
+ if(cutin){const q=cutin.t;ctx.save();ctx.translate(W/2+Math.max(0,.2-q)*900,H/2-60);ctx.rotate(-.1);ctx.fillStyle=cutin.c;ctx.fillRect(-W,-34,W*2,68);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='20px "Dela Gothic One",sans-serif';ctx.fillText(cutin.s,0,10);ctx.restore()}
  if(flash>0){ctx.fillStyle=`rgba(255,255,255,${flash})`;ctx.fillRect(-20,-20,W+40,H+40)}
  ctx.restore();
 }
@@ -425,6 +439,12 @@ function draw(){
 /* ---- roadmap ---- */
 const ov=document.getElementById('ov'),ovb=document.getElementById('ovb');let nodes=[],tz=1.1;
 const hf=n=>n<1e6?n.toLocaleString():fmt(n);
+const fj=n=>n>=1e8?Math.floor(n/1e8)+'億'+Math.floor(n%1e8/1e4)+'万':n.toLocaleString();
+const DESC={'部下':()=>'自動で武器を投げる部下を雇う。人数が多いほど攻撃が増える(いま'+S.subs+'人)','研修':()=>'部下と巨大部下の威力が+1ずつ上がる(いまLv'+S.train+')','巨大部下':()=>'部下5人で解放。君の攻撃に合わせて強い攻撃を放つ(いま'+S.giants+'人)','巨大Lv':()=>'巨大部下の攻撃が強くなる(いまLv'+S.gl+')',
+ '時止めLv':()=>'時止めの連打1発と、最後の一撃が強くなる(いまLv'+S.ult+')','セール':()=>'全ての購入が5%ずつ安くなる。最大30%(いま-'+Math.round((1-DC())*100)+'%)。会心の価格には効かない','ポイント倍率':()=>'獲得ポイントの倍率が+1ずつ増える(購入×'+(1+S.mul)+')',
+ '会心解放':()=>'5億ptで解放。会心率4%から始まる。転生しても一生残る','会心率':()=>'会心の出る確率が上がる。転生10回で解放、1レベルごとに転生1回が必要。最大Lv5で20%。転生しても残る(いま'+Math.round(critRate()*100)+'%)','会心倍率':()=>'会心のダメージが+35%ずつ上がる。最大Lv10で500%。転生しても残る(いま'+Math.round(critMul()*100)+'%)。部下・時止め・レーザーにも効く'};
+const descOf=n=>{const w=WP.find(x=>x.n===n);return w?'1発で'+w.k+'段落とす。連射は毎秒'+(1/w.cd).toFixed(1)+'回':(DESC[n]?DESC[n]():'')};
+const showDesc=nd=>{const e=document.getElementById('nds');if(e)e.textContent=nd.n+': '+descOf(nd.n)};
 function icon(fn){const c=document.createElement('canvas');c.width=64*dpr;c.height=64*dpr;const o=ctx;ctx=c.getContext('2d');ctx.scale(dpr,dpr);fn();ctx=o;return c}
 const WS=[2,2,1.7,1.7,1.5,1.9,1.5,1.7,1.1,1.4,1.2,1.3,1.1,1.3,1.3,1.2];
 const mulCost=()=>Math.floor(150*Math.pow(1.6,S.mul)),ultCost=()=>Math.floor(100*Math.pow(1.7,S.ult));
@@ -445,47 +465,52 @@ function BR(){return[
  ['割引',[{n:'セール',sub:()=>'-'+Math.round((1-DC())*100)+'%',ic:saleIc,st:()=>S.dc>=6?'own':'buy',pr:dcCost,raw:1,go:()=>{if(S.dc<6&&pay(dcCost(),1))S.dc++}}]],
  ['会心',[
   {n:'会心解放',sub:()=>S.cr?'解放済':'5億pt',ic:critIc,st:()=>S.cr?'own':'buy',pr:()=>5e8,raw:1,lbl:'解放済',go:()=>{if(!S.cr&&pay(5e8,1))S.cr=1}},
-  {n:'会心率',sub:()=>S.rb<10?'転生10回で':'Lv'+(S.crl||0)+'/5 '+Math.round(critRate()*100)+'%',ic:critIc,st:()=>!S.cr||S.rb<10?'lock':(S.crl||0)>=5?'own':((S.crl||0)+1<=S.rb-9?'buy':'lock'),pr:()=>Math.floor(1e9*Math.pow(2,S.crl||0)),raw:1,go:()=>{const l=S.crl||0;if(S.cr&&S.rb>=10&&l<5&&l+1<=S.rb-9&&pay(Math.floor(1e9*Math.pow(2,l)),1))S.crl=l+1}},
+  {n:'会心率',sub:()=>{const l=S.crl||0;return l>=5?'Lv5/5 20%':S.rb<10+l?'転生'+(10+l)+'回で':'Lv'+l+'/5 '+Math.round(critRate()*100)+'%'},ic:critIc,st:()=>!S.cr||S.rb<10?'lock':(S.crl||0)>=5?'own':((S.crl||0)+1<=S.rb-9?'buy':'lock'),pr:()=>Math.floor(1e9*Math.pow(2,S.crl||0)),raw:1,go:()=>{const l=S.crl||0;if(S.cr&&S.rb>=10&&l<5&&l+1<=S.rb-9&&pay(Math.floor(1e9*Math.pow(2,l)),1))S.crl=l+1}},
   {n:'会心倍率',sub:()=>Math.round(critMul()*100)+'%',ic:critIc,st:()=>!S.cr?'lock':(S.cml||0)>=10?'own':'buy',pr:()=>Math.floor(3e8*Math.pow(1.8,S.cml||0)),raw:1,go:()=>{const l=S.cml||0;if(S.cr&&l<10&&pay(Math.floor(3e8*Math.pow(1.8,l)),1))S.cml=l+1}}]],
  ['倍率',[{n:'ポイント倍率',sub:()=>'×'+(1+S.mul),ic:mulIc,st:()=>'buy',pr:mulCost,go:()=>{if(pay(mulCost()))S.mul++}}]]]}
 function openOv(){paused=true;ovOn=1;hold=false;ov.classList.add('on');if(bgmEl)bgmEl.pause()}
 function closeOv(){ov.classList.remove('on');paused=false;ovOn=0;if(bgmEl&&!mute)bgmEl.play().catch(()=>{})}
-function openLv(){openOv();ovb.innerHTML='<div class="hd"><span>レベルアップ</span><span id="pm"></span><span><button class="x" id="zm">－</button><button class="x" id="zp">＋</button><button class="x" id="xx">×</button></span></div><div id="pm2" style="font:700 12px sans-serif;margin:-4px 0 10px;color:#ffd24a"></div><div class="tree"></div>';
+function openLv(){openOv();ovb.innerHTML='<div class="hd"><span>レベルアップ</span><span id="pm"></span><span><button class="x" id="zm">－</button><button class="x" id="zp">＋</button><button class="x" id="xx">×</button></span></div><div id="pm2" style="font:700 12px sans-serif;margin:-4px 0 10px;color:#ffd24a"></div><div id="nds">長押しで説明が見られるよ(タップで購入)</div><button class="mn" id="bulk" style="margin:0 0 8px;height:38px">武器を一括購入</button><div class="tree"></div>';
  const tr=ovb.querySelector('.tree');nodes=[];
  for(const [nm,list] of BR()){const c=document.createElement('div');c.className='col';c.innerHTML='<h4>'+nm+'</h4>';
-  for(const nd of list){const b=document.createElement('button');b.className='nd';b.append(icon(nd.ic));b.insertAdjacentHTML('beforeend','<b>'+nd.n+'</b><i></i><u></u>');b.onclick=()=>{nd.go();hudDirty=true;save();dockUI();refreshUI()};b._n=nd;c.append(b);nodes.push(b)}
+  for(const nd of list){const b=document.createElement('button');b.className='nd';b.append(icon(nd.ic));b.insertAdjacentHTML('beforeend','<b>'+nd.n+'</b><i></i><u></u>');let lp=0,tm;b.onpointerdown=()=>{lp=0;tm=setTimeout(()=>{lp=1;showDesc(nd)},400)};b.onpointerup=b.onpointerleave=()=>clearTimeout(tm);b.onclick=()=>{if(lp){lp=0;return}nd.go();showDesc(nd);hudDirty=true;save();dockUI();refreshUI()};b._n=nd;c.append(b);nodes.push(b)}
   tr.append(c)}
- document.getElementById('xx').onclick=closeOv;tr.style.zoom=tz;document.getElementById('zp').onclick=()=>{tz=Math.min(2,tz+.2);tr.style.zoom=tz};document.getElementById('zm').onclick=()=>{tz=Math.max(.6,tz-.2);tr.style.zoom=tz};refreshUI()}
+ document.getElementById('xx').onclick=closeOv;document.getElementById('bulk').onclick=()=>{let n=0;for(let i=1;i<WP.length;i++){if(S.owned[i])continue;if(!S.owned[i-1])break;if(!pay(WP[i].cost))break;S.owned[i]=1;S.eq=i;n++}hudDirty=true;save();dockUI();refreshUI()};tr.style.zoom=tz;document.getElementById('zp').onclick=()=>{tz=Math.min(2,tz+.2);tr.style.zoom=tz};document.getElementById('zm').onclick=()=>{tz=Math.max(.6,tz-.2);tr.style.zoom=tz};refreshUI()}
 function refreshUI(){const pm=document.getElementById('pm');if(pm)pm.textContent=hf(S.pts)+'pt';const p2=document.getElementById('pm2');if(p2)p2.textContent='倍率 ×'+PM()+' = 基本2 × 転生'+(1+S.rb)+' × 購入'+(1+S.mul);
  for(const b of nodes){const n=b._n,s=n.st(),p=n.raw?n.pr():Math.ceil(n.pr()*DC());b.className='nd '+s+(s==='buy'&&S.pts<p?' poor':'');b.children[2].textContent=n.sub();b.children[3].textContent=s==='eq'?'装備中':s==='own'?(n.raw?(n.lbl||'MAX'):'装備する'):s==='lock'?'未解放':fmt(p)+'pt'}
  hudDirty=true;document.getElementById('pts').textContent=hf(S.pts)}
-function openPause(){openOv();ovb.innerHTML='<div class="hd"><span>ポーズ</span></div><button class="mn" id="p1">再開</button><button class="mn" id="p2">サウンド: '+(mute?'OFF':'ON')+'</button><div class="sl">BGM <input type="range" id="sb" min="0" max="100" value="'+Math.round(VB()*100)+'"></div><div class="sl">効果音 <input type="range" id="ss" min="0" max="100" value="'+Math.round(VS()*100)+'"></div><button class="mn" id="p3">データをコピー</button><button class="mn" id="p4">データを読み込む</button><button class="mn" id="p5">あそびかた</button><button class="mn" id="p6">ランキング</button><div style="margin-top:10px;font-size:12px">自動保存 '+LS.toLocaleTimeString()+'<br>ID: '+S.uid+'<br>転生'+S.rb+'回 / ポイント×'+PM().toFixed(2)+'</div>';
- const g=id=>document.getElementById(id);g('p1').onclick=closeOv;g('p6').onclick=openRank;g('sb').oninput=e=>{S.vb=e.target.value/100;if(bgmEl)bgmEl.volume=.4*VB();save()};g('ss').oninput=e=>{S.vs=e.target.value/100;save()};g('p5').onclick=()=>{ov.classList.remove('on');ovOn=0;intro.classList.remove('off');introOn=1;tp=0;t1.hidden=true;t2.hidden=false;showTP()};
+function openPause(){openOv();ovb.innerHTML='<div class="hd"><span>ポーズ</span></div><button class="mn" id="p1">再開</button><button class="mn" id="p2">サウンド: '+(mute?'OFF':'ON')+'</button><div class="sl">BGM <input type="range" id="sb" min="0" max="100" value="'+Math.round(VB()*100)+'"></div><div class="sl">効果音 <input type="range" id="ss" min="0" max="100" value="'+Math.round(VS()*100)+'"></div><button class="mn" id="p3">データをコピー</button><button class="mn" id="p4">データを読み込む</button><button class="mn" id="p5">あそびかた</button><button class="mn" id="p7">実績</button><button class="mn" id="p8">上司図鑑</button><button class="mn" id="p6">ランキング</button><div style="margin-top:10px;font-size:12px">自動保存 '+LS.toLocaleTimeString()+'<br>ID: '+S.uid.slice(0,8)+'<br>転生'+S.rb+'回 / ポイント×'+PM().toFixed(2)+'</div>';
+ const g=id=>document.getElementById(id);g('p1').onclick=closeOv;g('p6').onclick=openRank;g('p7').onclick=openAch;g('p8').onclick=openDex;g('sb').oninput=e=>{S.vb=e.target.value/100;if(bgmEl)bgmEl.volume=.4*VB();save()};g('ss').oninput=e=>{S.vs=e.target.value/100;save()};g('p5').onclick=()=>{ov.classList.remove('on');ovOn=0;intro.classList.remove('off');introOn=1;tp=0;t1.hidden=true;t2.hidden=false;showTP()};
  g('p2').onclick=()=>{startAudio();mute=!mute;if(master)master.gain.value=mute?0:.55;if(bgmEl)bgmEl.muted=mute;mb.classList.toggle('off',mute);mb.textContent=mute?'切':'音';openPause()};
  g('p3').onclick=()=>{const c=btoa(unescape(encodeURIComponent(JSON.stringify(S))));try{navigator.clipboard.writeText(c).then(()=>alert('コピーしました'),()=>prompt('コピーしてください',c))}catch(e){prompt('コピーしてください',c)}};
  g('p4').onclick=()=>{const c=prompt('コピーしたデータを貼り付け');if(!c)return;try{Object.assign(S,JSON.parse(decodeURIComponent(escape(atob(c)))));save();hudDirty=true;dockUI();alert('読み込みました')}catch(e){alert('読み込めませんでした')}}}
 const RANK={project:'joushi-otoshi',key:'AIzaSyCtfqab-S4D8IBq3NMfa0ZSyY-Si3VwduM'};
 const FU=()=>`https://firestore.googleapis.com/v1/projects/${RANK.project}/databases/(default)/documents`;
 const MCOL=()=>'rm'+curKey();let rtab=0,rkind=0;
-async function rankList(col){const r=await fetch(FU()+':runQuery?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:col}],orderBy:[{field:{fieldPath:'kills'},direction:'DESCENDING'}],limit:50}})});const j=await r.json();return j.filter(x=>x.document).map(x=>({id:x.document.name.split('/').pop(),name:x.document.fields.name.stringValue,kills:+x.document.fields.kills.integerValue}))}
-async function put(col,nm,n){const r=await fetch(FU()+'/'+col+'/'+S.uid+'?key='+RANK.key+'&updateMask.fieldPaths=name&updateMask.fieldPaths=kills',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{name:{stringValue:nm},kills:{integerValue:String(n)}}})});return r.ok}
+let TOK='',TEXP=0,authP=null;
+async function doAuth(){try{let j;if(S.rf){const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(S.rf)});j=await r.json();if(j.id_token){TOK=j.id_token;TEXP=Date.now()+(+j.expires_in-120)*1000;S.rf=j.refresh_token;save();return}}
+ const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/json'},body:'{"returnSecureToken":true}'});j=await r.json();if(j.idToken){TOK=j.idToken;TEXP=Date.now()+(+j.expiresIn-120)*1000;S.rf=j.refreshToken;S.uid=j.localId;save()}}catch(e){}}
+function authReady(){if(TOK&&Date.now()<TEXP)return Promise.resolve();return authP||(authP=doAuth().finally(()=>{authP=null}))}
+async function FX(u,o){o=o||{};await authReady();if(TOK)o.headers=Object.assign({},o.headers||{},{Authorization:'Bearer '+TOK});return fetch(u,o)}
+async function rankList(col){const r=await FX(FU()+':runQuery?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:col}],orderBy:[{field:{fieldPath:'kills'},direction:'DESCENDING'}],limit:50}})});const j=await r.json();return j.filter(x=>x.document).map(x=>({id:x.document.name.split('/').pop(),name:x.document.fields.name.stringValue,kills:+x.document.fields.kills.integerValue}))}
+async function put(col,nm,n){const r=await FX(FU()+'/'+col+'/'+S.uid+'?key='+RANK.key+'&updateMask.fieldPaths=name&updateMask.fieldPaths=kills',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{name:{stringValue:nm},kills:{integerValue:String(n)}}})});return r.ok}
 async function rankSend(force){if(!S.uid)S.uid=Math.random().toString(36).slice(2,10).toUpperCase();let nm=S.nm;if(!nm||force)nm=(prompt('ニックネーム(12文字まで)',S.nm||'')||'').trim().slice(0,12);if(!nm)return false;S.nm=nm;save();
  const a=await put('ranks',nm,S.tot),b=await put(MCOL(),nm,S.mkey===curKey()?S.mk:0);if(a&&b){S.rt=Date.now();save();if(S.club)clubSync().catch(()=>{})}return a&&b}
 async function openRank(){if(!RANK.project){alert('ランキングは準備中です');return}
- openOv();ovb.innerHTML='<div class="hd"><span>撃破ランキング</span><button class="x" id="r2">×</button></div><div style="display:flex;gap:6px;margin-bottom:8px"><button class="mn tb'+(rtab?'':' on')+'" id="ta" style="margin:0;height:36px">累計</button><button class="mn tb'+(rtab?' on':'')+'" id="tb" style="margin:0;height:36px">月間</button></div><div style="display:flex;gap:6px;margin-bottom:8px"><button class="mn tb'+(rkind?'':' on')+'" id="ka" style="margin:0;height:36px">個人</button><button class="mn tb'+(rkind?' on':'')+'" id="kb" style="margin:0;height:36px">組合</button></div><div style="font:700 12px sans-serif;margin-bottom:6px;color:#ffd24a">あなた: '+(S.nm||'未設定').replace(/[<>&]/g,'')+' / ID '+S.uid+(rtab?'<br>毎月1日 4:00 にリセット':'')+'</div><div id="rl" style="min-height:120px">読み込み中…</div><button class="mn" id="r1">自分の記録を送信</button><button class="mn" id="r3">名前を変更</button>';
- const g=id=>document.getElementById(id),show=async()=>{try{const l=await rankList(rkind?(rtab?'cm'+curKey():'clubs'):(rtab?MCOL():'ranks')),d=g('rl');d.textContent='';l.forEach((x,i)=>{const r=document.createElement('div');r.className='rk r'+Math.min(i+1,11)+(x.id===S.uid?' me':'');const a=document.createElement('span');a.textContent=i+1;const b=document.createElement('span');b.className='nm2';b.textContent=x.name;const c=document.createElement('span');c.textContent=hf(x.kills)+'人';r.append(a,b,c);d.append(r)});if(!l.length)d.textContent='まだ記録がありません'}catch(e){g('rl').textContent='読み込めませんでした'}};
+ openOv();ovb.innerHTML='<div class="hd"><span>撃破ランキング</span><button class="x" id="r2">×</button></div><div style="display:flex;gap:6px;margin-bottom:8px"><button class="mn tb'+(rtab?'':' on')+'" id="ta" style="margin:0;height:36px">累計</button><button class="mn tb'+(rtab?' on':'')+'" id="tb" style="margin:0;height:36px">月間</button></div><div style="display:flex;gap:6px;margin-bottom:8px"><button class="mn tb'+(rkind?'':' on')+'" id="ka" style="margin:0;height:36px">個人</button><button class="mn tb'+(rkind?' on':'')+'" id="kb" style="margin:0;height:36px">組合</button></div><div style="font:700 12px sans-serif;margin-bottom:6px;color:#ffd24a">あなた: '+(S.nm||'未設定').replace(/[<>&]/g,'')+' / ID '+S.uid.slice(0,8)+(rtab?'<br>毎月1日 4:00 にリセット':'')+'</div><div id="rl" style="min-height:120px">読み込み中…</div><button class="mn" id="r1">自分の記録を送信</button><button class="mn" id="r3">名前を変更</button>';
+ const g=id=>document.getElementById(id),show=async()=>{try{const l=await rankList(rkind?(rtab?'cm'+curKey():'clubs'):(rtab?MCOL():'ranks')),d=g('rl');d.textContent='';l.forEach((x,i)=>{const r=document.createElement('div');r.className='rk r'+Math.min(i+1,11)+(x.id===S.uid?' me':'');const a=document.createElement('span');a.textContent=i+1;const b=document.createElement('span');b.className='nm2';b.textContent=x.name;const c=document.createElement('span');c.textContent=fj(x.kills)+'人';r.append(a,b,c);d.append(r)});if(!l.length)d.textContent='まだ記録がありません'}catch(e){g('rl').textContent='読み込めませんでした'}};
  g('ka').onclick=()=>{rkind=0;openRank()};g('kb').onclick=()=>{rkind=1;openRank()};g('ta').onclick=()=>{rtab=0;openRank()};g('tb').onclick=()=>{rtab=1;openRank()};
  g('r1').onclick=async()=>{try{if(await rankSend())await show();else alert('送信できませんでした')}catch(e){alert('送信できませんでした')}};
  g('r3').onclick=async()=>{try{if(await rankSend(1))openRank()}catch(e){alert('送信できませんでした')}};g('r2').onclick=closeOv;show()}
 const H$=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
 const mbtn=(txt,fn)=>{const b=H$('button','mn',txt);b.onclick=fn;return b};
 const fv=o=>{const f={};for(const k in o){const v=o[k];f[k]=typeof v==='number'?{integerValue:String(v)}:{stringValue:String(v)}}return f};
-async function fset(path,o){const q=Object.keys(o).map(k=>'updateMask.fieldPaths='+k).join('&');const r=await fetch(FU()+'/'+path+'?key='+RANK.key+'&'+q,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:fv(o)})});return r.ok}
-const fdel=async path=>(await fetch(FU()+'/'+path+'?key='+RANK.key,{method:'DELETE'})).ok;
+async function fset(path,o){const q=Object.keys(o).map(k=>'updateMask.fieldPaths='+k).join('&');const r=await FX(FU()+'/'+path+'?key='+RANK.key+'&'+q,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:fv(o)})});return r.ok}
+const fdel=async path=>(await FX(FU()+'/'+path+'?key='+RANK.key,{method:'DELETE'})).ok;
 const dv=d=>{const o={};for(const k in d.fields||{}){const v=d.fields[k];o[k]=v.integerValue!=null?+v.integerValue:v.stringValue}o._id=d.name.split('/').pop();return o};
-async function fq(q){const r=await fetch(FU()+':runQuery?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:q})});const j=await r.json();return j.filter(x=>x.document).map(x=>dv(x.document))}
-async function fget(path){const r=await fetch(FU()+'/'+path+'?key='+RANK.key);return r.ok?dv(await r.json()):null}
-async function flist(path){const r=await fetch(FU()+'/'+path+'?key='+RANK.key+'&pageSize=30');const j=await r.json();return(j.documents||[]).map(dv)}
+async function fq(q){const r=await FX(FU()+':runQuery?key='+RANK.key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:q})});const j=await r.json();return j.filter(x=>x.document).map(x=>dv(x.document))}
+async function fget(path){const r=await FX(FU()+'/'+path+'?key='+RANK.key);return r.ok?dv(await r.json()):null}
+async function flist(path){const r=await FX(FU()+'/'+path+'?key='+RANK.key+'&pageSize=30');const j=await r.json();return(j.documents||[]).map(dv)}
 const eqf=(f,v)=>({fieldFilter:{field:{fieldPath:f},op:'EQUAL',value:{stringValue:v}}});
 function needName(){if(!S.nm){const n=(prompt('ニックネーム(12文字まで)')||'').trim().slice(0,12);if(!n)return false;S.nm=n;save()}return true}
 async function clubSync(){if(!S.club)return;const ck=curKey(),mk=S.mkey===ck?S.mk:0;await fset('clubs/'+S.club+'/m/'+S.uid,{name:S.nm||'名無し',kills:S.tot,mk,mkey:ck});const ms=await flist('clubs/'+S.club+'/m'),cl=await fget('clubs/'+S.club);if(!cl)return;
@@ -500,8 +525,11 @@ async function sclub(){const q=(prompt('組合名で検索(前方一致)')||'').
 async function joinClub(cid,cn,inv){const ms=await flist('clubs/'+cid+'/m');if(ms.length>=15){alert('満員です');return}if(!needName())return;const ck=curKey();
  if(await fset('clubs/'+cid+'/m/'+S.uid,{name:S.nm,kills:S.tot,mk:S.mkey===ck?S.mk:0,mkey:ck})){await fdel('clubinv/'+inv);S.club=cid;S.cname=cn;S.reqs=[];save();await clubSync().catch(()=>{})}openClub()}
 async function approve(q,n){if(n>=15){alert('満員です');return}if(await fset('clubs/'+S.club+'/m/'+q.uid,{name:q.name,kills:0,mk:0,mkey:0}))await fdel('clubreq/'+q._id);await clubSync().catch(()=>{});openClub()}
+async function checkClubLink(){const cid=new URLSearchParams(location.search).get('club');if(!cid)return;history.replaceState(null,'',location.pathname);if(cid===S.club)return;
+ try{const c=await fget('clubs/'+cid);if(!c)return;if(c.n>=15){alert('「'+c.name+'」は満員です');return}if(!confirm('労働者組合「'+c.name+'」に参加申請しますか?'))return;if(!needName())return;
+  if(await fset('clubreq/'+cid+'_'+S.uid,{cid,uid:S.uid,name:S.nm,cname:c.name})){S.reqs=[...(S.reqs||[]),cid];save();alert('申請しました。代表の承認を待ってね')}}catch(e){}}
 async function inviteP(){const id=(prompt('招待するプレイヤーのID')||'').trim();if(!id)return;if(await fset('clubinv/'+id+'_'+S.club,{uid:id,cid:S.club,cname:S.cname}))alert('招待を送りました');else alert('送れませんでした')}
-async function shareClub(){const text='労働者組合「'+S.cname+'」メンバー募集中!\n組合名で検索して申請してね\n'+location.origin+location.pathname;try{if(navigator.share){await navigator.share({text});return}}catch(e){return}prompt('コピーして共有してね',text)}
+async function shareClub(){const text='労働者組合「'+S.cname+'」メンバー募集中!\n組合名で検索してリンクから参加申請できるよ\n'+location.origin+location.pathname+'?club='+S.club;try{if(navigator.share){await navigator.share({text});return}}catch(e){return}prompt('コピーして共有してね',text)}
 async function leaveClub(ms,lead){if(lead&&ms.length>1){alert('メンバーがいる間は解散できません');return}if(!confirm(lead?'組合を解散しますか?':'脱退しますか?'))return;
  await fdel('clubs/'+S.club+'/m/'+S.uid);if(lead){await fdel('clubs/'+S.club);await fdel('cm'+curKey()+'/'+S.club)}S.club='';S.cname='';save();openClub()}
 async function openClub(){if(!RANK.project){alert('準備中です');return}openOv();ovb.innerHTML='<div class="hd"><span>労働者組合</span><button class="x" id="cx">×</button></div><div id="cb">読み込み中…</div>';document.getElementById('cx').onclick=closeOv;const cb=document.getElementById('cb');
@@ -509,28 +537,42 @@ async function openClub(){if(!RANK.project){alert('準備中です');return}open
  try{
   for(const c of(S.reqs||[])){const m=await fget('clubs/'+c+'/m/'+S.uid);if(m){const cl=await fget('clubs/'+c);S.club=c;S.cname=cl?cl.name:'';S.reqs=[];save();break}}
   cb.textContent='';
-  if(!S.club){add(line('あなたのID: '+S.uid+'(招待してもらうときに伝えてね)'),mbtn('組合を作る',cclub),mbtn('組合を探す',sclub));
-   const inv=await fq({from:[{collectionId:'clubinv'}],where:eqf('uid',S.uid),limit:10});
+  if(!S.club){add(line('あなたのID: '+S.uid.slice(0,8)+'(招待してもらうときに伝えてね)'),mbtn('組合を作る',cclub),mbtn('組合を探す',sclub));
+   const inv=await fq({from:[{collectionId:'clubinv'}],where:eqf('uid',S.uid.slice(0,8)),limit:10});
    if(inv.length)add(line('招待が届いています'));inv.forEach(v=>add(mbtn(v.cname+' に参加する',()=>joinClub(v.cid,v.cname,v._id))));
    if((S.reqs||[]).length)add(line('申請中: '+S.reqs.length+'件'))}
   else{const cl=await fget('clubs/'+S.club);if(!cl){S.club='';save();return openClub()}S.cname=cl.name;
    const ms=await flist('clubs/'+S.club+'/m'),lead=cl.leader===S.uid;
    add(line(cl.name+' ('+ms.length+'/15人)'));
-   ms.sort((a,b)=>b.kills-a.kills).forEach(m=>{const r=H$('div','rk');r.append(H$('span',null,''),H$('span','nm2',m.name+(m._id===cl.leader?'(代表)':'')),H$('span',null,hf(m.kills)+'人'));cb.append(r)});
+   ms.sort((a,b)=>b.kills-a.kills).forEach(m=>{const r=H$('div','rk');r.append(H$('span',null,''),H$('span','nm2',m.name+(m._id===cl.leader?'(代表)':'')),H$('span',null,fj(m.kills)+'人'));cb.append(r)});
    if(lead){const rq=await fq({from:[{collectionId:'clubreq'}],where:eqf('cid',S.club),limit:15});if(rq.length)add(line('参加申請'));
     rq.forEach(q=>add(mbtn('承認: '+q.name,()=>approve(q,ms.length)),mbtn('拒否',()=>fdel('clubreq/'+q._id).then(openClub))));add(mbtn('プレイヤーIDで招待',inviteP))}
    add(mbtn('組合をシェア',shareClub),mbtn(lead?'解散(1人のときだけ)':'脱退',()=>leaveClub(ms,lead)))}
  }catch(e){cb.textContent='読み込めませんでした'}}
-function cardTxt(id){const r=(S.cc[id]||0)+1;return id===1?'夜の間はポイント獲得量が<b class="hl">×'+(1+r)+'</b>':id===2?'1ヶ月に1日ボーナスタイム':'10日に1日 部下の数×<b class="hl">'+(1000*(r+1))+'</b>撃破数が増える'}
+const pct=p=>(p*100).toFixed(7).replace(/\.?0+$/,'')+'%';
+const dexN=()=>Object.keys(S.dex).filter(k=>S.dex[k]>0).length;
+function icon2(r){const c=document.createElement('canvas');c.width=64*dpr;c.height=40*dpr;c.style.cssText='width:64px;height:40px';const o=ctx;ctx=c.getContext('2d');ctx.scale(dpr*.36,dpr*.36);drawBlock({t:0,hue:r.h,hair:'#ffd24a'},0,0,0,0);ctx=o;return c}
+function openDex(){openOv();ovb.innerHTML='<div class="hd"><span>上司図鑑 '+dexN()+'/'+RB.length+'</span><button class="x" id="xx">×</button></div>';document.getElementById('xx').onclick=closeOv;
+ RB.forEach((r,i)=>{const got=S.dex[i]>0,row=H$('div','rk r11');row.style.cssText='gap:10px;padding:8px';
+  if(got){row.append(icon2(r));const d=H$('div',null,r.n+'  出現率 '+pct(r.p)+'\n能力: '+r.bn+'  撃破 '+S.dex[i]+'回');d.style.cssText='flex:1;font:700 12px/1.5 sans-serif;white-space:pre-line';row.append(d)}
+  else{const q=H$('div',null,'？');q.style.cssText='width:64px;height:40px;display:flex;align-items:center;justify-content:center;font:400 28px "Dela Gothic One",sans-serif;background:#ccc;border-radius:6px';const d=H$('div',null,'？？？？？');d.style.cssText='flex:1;font:700 14px sans-serif';row.append(q,d)}
+  ovb.append(row)})}
+const ACH=[['連打50','時止めで1回に50連打',()=>S.st.pm>=50],['連打100','時止めで1回に100連打',()=>S.st.pm>=100],['連打200','時止めで1回に200連打',()=>S.st.pm>=200],['撃破1万','累計1万人撃破',()=>S.tot>=1e4],['撃破100万','累計100万人撃破',()=>S.tot>=1e6],['撃破1億','累計1億人撃破',()=>S.tot>=1e8],
+ ['転生1回','初めて転生した',()=>S.rb>=1],['転生5回','転生5回',()=>S.rb>=5],['転生10回','転生10回',()=>S.rb>=10],['会心100','会心を100回出した',()=>S.st.crit>=100],['会心1万','会心を1万回出した',()=>S.st.crit>=1e4],
+ ['部下10人','部下を10人雇った',()=>S.subs>=10],['部下100人','部下を100人雇った',()=>S.subs>=100],['神の鉄槌','神の鉄槌を解放した',()=>!!S.owned[15]],['図鑑5種','レア上司を5種撃破',()=>dexN()>=5],['図鑑コンプ','レア上司を全種撃破',()=>dexN()>=RB.length]];
+function chkAch(){for(const[a,d,f]of ACH){if(!S.ach[a]&&f()){S.ach[a]=1;cutin={t:0,s:'実績解除! '+a,c:'#2f8a64'};sfx('levelup');dirtySave=true}}}
+function openAch(){openOv();ovb.innerHTML='<div class="hd"><span>実績 '+ACH.filter(a=>S.ach[a[0]]).length+'/'+ACH.length+'</span><button class="x" id="xx">×</button></div>';document.getElementById('xx').onclick=closeOv;
+ ACH.forEach(([a,d])=>{const r=H$('div','rk r11'),g=S.ach[a];r.style.cssText='gap:10px;padding:8px;'+(g?'':'opacity:.5');r.append(H$('span',null,g?'★':'・'),H$('span','nm2',(g?a:'？？？')+'  '+d));ovb.append(r)})}
+function cardTxt(id){const r=(S.cc[id]||0)+1;return id===1?'夜の間はポイント獲得量が<b class="hl">×'+(1+r)+'</b>':id===2?'5日に1日ボーナスタイム':'5日に1日 部下の数×<b class="hl">'+(1000*(r+1))+'</b>撃破数が増える'}
 function openCards(){openOv();const N=['サービス残業','有給休暇','ストライキ'],K=['夜','休','闘'];
- ovb.innerHTML='<div class="hd"><span>転生ボーナスを1枚選べ!</span></div><div class="cards">'+[1,2,3].map((id,i)=>'<div class="cd" data-i="'+id+'" style="animation-delay:'+(i*.25)+'s"><div class="in"><div class="bk">?</div><div class="fr c'+id+'"><div class="ch">'+K[id-1]+'</div><b>'+N[id-1]+'</b><p>'+cardTxt(id)+'</p></div></div></div>').join('')+'</div><div style="text-align:center;font:700 12px sans-serif;margin-top:10px;color:#ffd24a">カードをタップして選ぼう</div>';
+ ovb.innerHTML='<div class="hd"><span>強化するカードを1枚選べ!</span></div><div class="cards">'+[1,2,3].map((id,i)=>'<div class="cd" data-i="'+id+'" style="animation-delay:'+(i*.25)+'s"><div class="in"><div class="bk">?</div><div class="fr c'+id+'"><div class="ch">'+K[id-1]+'</div><b>'+N[id-1]+'</b><i class="lv">Lv'+(S.cc[id]||0)+'→'+((S.cc[id]||0)+1)+'</i><p>'+cardTxt(id)+'</p></div></div></div>').join('')+'</div><div style="text-align:center;font:700 12px sans-serif;margin-top:10px;color:#ffd24a">カードをタップして選ぼう</div>';
  let pk=0;ovb.querySelectorAll('.cd').forEach(c=>{setTimeout(()=>c.classList.add('fl'),700+c.dataset.i*250);c.onclick=()=>{if(pk)return;pk=1;S.card=+c.dataset.i;S.cc[S.card]=(S.cc[S.card]||0)+1;save();c.classList.add('pk');ovb.querySelectorAll('.cd').forEach(o=>{if(o!==c)o.classList.add('dm')});sfx('levelup');setTimeout(closeOv,1500)}})}
 function dockUI(){const r=document.getElementById('rb');r.hidden=!S.owned[15];r.textContent='転生'}
 document.getElementById('lv').onclick=openLv;document.getElementById('cl').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openClub()});
 document.getElementById('rk').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openRank()});
 document.getElementById('pz').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openPause()});
 document.getElementById('rb').onclick=()=>{if(!confirm('転生しますか?\n・ポイント倍率が×'+2*(2+S.rb)+'になります\n・自動レーザーがLv'+(S.rb+1)+'になります\n・ポイント、武器、部下、レベルはリセットされます'))return;
- S.rb++;S.pts=0;S.owned=[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];S.eq=0;S.subs=S.giants=S.train=S.ult=S.mul=S.dc=S.gl=0;proj.length=0;flying.length=0;save();hudDirty=true;dockUI();sfx('levelup');openCards();texts.push({x:W/2,y:H/2,s:'転生!!',l:1.2,sc:1.2,rot:0,c:'#ffd24a',up:1})};
+ S.rb++;S.pts=0;S.owned=[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];S.eq=0;S.subs=S.giants=S.train=S.ult=S.mul=S.dc=S.gl=0;proj.length=0;flying.length=0;save();hudDirty=true;dockUI();sfx('levelup');if(S.rb>=5)openCards();texts.push({x:W/2,y:H/2,s:'転生!!',l:1.2,sc:1.2,rot:0,c:'#ffd24a',up:1})};
 const ub=document.getElementById('ult');
 ub.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();ultGo()});
 document.getElementById('stage').addEventListener('pointerdown',e=>{hold=true;e.preventDefault();punch()});
@@ -585,12 +627,12 @@ function drawTutN(){const c=document.getElementById('tc');c.width=320*dpr;c.heig
  else{['夜','休','闘'].forEach((k,i)=>{ctx.fillStyle=['#cfd8ff','#fff0b3','#ffd0c8'][i];rr(30+i*90,24,70,100,8);fs();ctx.fillStyle='#d9381e';ctx.font='36px "Dela Gothic One",sans-serif';ctx.fillText(k,65+i*90,88)});
   ctx.fillStyle='#ffd24a';ctx.font='bold 16px sans-serif';ctx.fillText('転生で1枚えらぶ!',160,158)}
  ctx=o}
-function begin(){intro.classList.add('off');introOn=0;paused=false;hold=false;last=performance.now()}
+function begin(){intro.classList.add('off');introOn=0;paused=false;hold=false;last=performance.now();checkClubLink()}
 intro.addEventListener('pointerdown',e=>{if(t1.hidden)return;e.preventDefault();startAudio();if(!S.seen){S.seen=1;save();tp=0;t1.hidden=true;t2.hidden=false;showTP()}else begin()});
 document.getElementById('ok').addEventListener('click',()=>{if(tp<2){tp++;showTP()}else begin()});document.getElementById('bk').addEventListener('click',()=>{tp=Math.max(0,tp-1);showTP()});
 document.getElementById('rec').textContent=S.tot?'撃破 '+hf(S.tot)+'人 ・ つづきから':'';
 if(!S.uid)S.uid=Math.random().toString(36).slice(2,10).toUpperCase();
-if(S.card&&!S.cc[S.card])S.cc[S.card]=Math.max(1,S.rb);
+if(S.card&&!S.cc[S.card])S.cc[S.card]=Math.max(1,S.rb);authReady();
 dockUI();draw();requestAnimationFrame(loop);
 </script>
 </body>

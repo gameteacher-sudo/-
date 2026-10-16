@@ -99,7 +99,7 @@ body,#stage,canvas{-webkit-touch-callout:none;-webkit-user-select:none;user-sele
 <div id="dock"><button class="bt" id="lv">レベルアップ</button><button class="bt" id="rb" hidden>転生</button></div>
 <div id="ov"><div id="ovb"></div></div>
 <div id="intro"><div id="t1"><h1>上司落とし</h1><div class="sub">無限に続く上司を殴り落とせ!</div><div class="go blink">タップしてスタート</div><div id="rec"></div></div>
-<div id="t2" class="pn" hidden><canvas id="tc"></canvas><p><b>画面を長押し</b>で武器を連射!<br>ポイントで武器や部下を強化<br>ゲージが溜まったら<b>時止め</b>、連打で殴りまくれ!</p><button class="bt" id="ok" style="width:100%">はじめる</button></div></div>
+<div id="t2" class="pn" hidden><canvas id="tc"></canvas><p id="tpt"></p><div id="pg" style="text-align:center;font:700 12px sans-serif;color:#ffd24a;margin-bottom:8px"></div><div style="display:flex;gap:8px"><button class="bt" id="bk" style="flex:.45">戻る</button><button class="bt" id="ok" style="flex:1">次へ</button></div></div></div>
 <script>
 const W=360,H=520,GROUND=470,BH=52,BW=150,CX=238;
 const cv=document.getElementById('c');let ctx=cv.getContext('2d');
@@ -123,14 +123,14 @@ const WP=[
  {n:'神の鉄槌',cost:100000000,k:400,cd:.12,sc:1.5}
 ];
 const SPIN=[1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0];
-let S={pts:0,tot:0,owned:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],eq:0,subs:0,giants:0,train:0,ult:0,mul:0,rb:0,seen:0,dc:0,gl:0,card:0,days:0,bonus:0,mk:0,mkey:0};
+let S={pts:0,tot:0,owned:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],eq:0,subs:0,giants:0,train:0,ult:0,mul:0,rb:0,seen:0,dc:0,cc:{1:0,2:0,3:0},gl:0,card:0,days:0,bonus:0,mk:0,mkey:0};
 try{const d=JSON.parse(localStorage.getItem('jyoushi3')||'{}');Object.assign(S,d);while(S.owned.length<16)S.owned.push(0)}catch(e){}
 let dirtySave=false;const save=()=>{try{localStorage.setItem('jyoushi3',JSON.stringify(S))}catch(e){}dirtySave=false;LS=new Date()};
 const hireCost=()=>Math.floor(25*Math.pow(1.28,S.subs)),giantCost=()=>Math.floor(4000*Math.pow(1.55,S.giants)),trainCost=()=>Math.floor(120*Math.pow(2.3,S.train));
 const curKey=()=>{const d=new Date(Date.now()+5*36e5);return d.getUTCFullYear()*100+d.getUTCMonth()+1};
 const nightF=()=>{const p=clock%60;return p<25?0:p<30?(p-25)/5:p<55?1:(60-p)/5};
 const critRate=()=>S.cr?.04+(S.crl||0)*.032:0,critMul=()=>1.5+(S.cml||0)*.35;
-const PM=()=>2*(1+S.rb)*(1+S.mul)*(S.card===1&&nightF()>.5?1+S.rb:1)*(S.card===2&&S.bonus?5*S.rb:1);
+const PM=()=>2*(1+S.rb)*(1+S.mul)*(S.card===1&&nightF()>.5?1+S.cc[1]:1)*(S.card===2&&S.bonus?5*S.cc[2]:1);
 const HAIR=['#3a3a3a','#8a8a8a','#e6e6e6','#5a3a22'];
 let stack=[],flying=[],proj=[],parts=[],texts=[],fxs=[],counter=0,cd=0,shake=0,freeze=0,ts=1,flash=0,hold=false,key=false,pl=0;
 let combo=0,comboT=0,pop=0,charge=0,ult=null,acc1=0,acc2=0,clock=0,hudDirty=true,hudT=0,shopT=0,lastCharge=-1,lastS=0;
@@ -318,7 +318,7 @@ function drawLaser(){const on=lzC>=1,ch=lzC<1?lzC:1,y=GROUND-BH/2,x0=34,x1=CX-BW
 let lastDay=0,cutin=null;
 function onDawn(){S.days++;dirtySave=true;
  if(S.card===2){if(S.bonus)S.bonus=0;else if(S.days%30===0){S.bonus=1;cutin={t:0,s:'ボーナスタイム!!',c:'#e89a00'}}}
- if(S.card===3&&S.days%10===0){const n=S.subs*1000*(S.rb+1),ck=curKey();S.tot+=n;S.mk=(S.mkey===ck?S.mk:0)+n;S.mkey=ck;hudDirty=true;cutin={t:0,s:'ストライキ!! +'+hf(n)+'撃破',c:'#d9381e'}}}
+ if(S.card===3&&S.days%10===0){const n=S.subs*1000*(S.cc[3]+1),ck=curKey();S.tot+=n;S.mk=(S.mkey===ck?S.mk:0)+n;S.mkey=ck;hudDirty=true;cutin={t:0,s:'ストライキ!! +'+hf(n)+'撃破',c:'#d9381e'}}}
 function drawSky(){const n=nightF();
  if(n>0){ctx.fillStyle='rgba(12,20,70,'+(.55*n).toFixed(3)+')';ctx.fillRect(0,0,W,H);
   if(n>.4){ctx.globalAlpha=n;ctx.fillStyle='#fff';for(let i=0;i<9;i++)ctx.fillRect(20+(i*37)%80,56+(i*53)%50,2,2);ctx.fillStyle='#ffe9a8';ctx.beginPath();ctx.arc(88,70,9,0,7);ctx.fill();ctx.globalAlpha=1}}
@@ -416,7 +416,7 @@ function draw(){
  if(ult&&ult.ph===0){const t=ult.t;ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(W/2+Math.max(0,.15-t)*900,H/2-40);ctx.rotate(-.12);ctx.fillStyle='#4b2fb8';ctx.fillRect(-W,-34,W*2,68);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='34px "Dela Gothic One",sans-serif';ctx.fillText('時よ止まれ!!',0,12);ctx.restore()}
  if(ult&&ult.ph===1){ctx.textAlign='center';ctx.fillStyle='#ffd24a';ctx.font='42px "Dela Gothic One",sans-serif';outText(ult.left.toFixed(1),W/2,70,7);ctx.fillStyle='#fff';ctx.font='22px "Dela Gothic One",sans-serif';outText('連打して殴れ!!',W/2,100,5);}
  if(ult&&ult.ph===2&&ult.t<.8){ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='26px "Dela Gothic One",sans-serif';outText('そして時は動き出す…',W/2,H/2-80,6)}
- if(S.bonus){ctx.textAlign='center';ctx.font='20px "Dela Gothic One",sans-serif';ctx.fillStyle='#ffd24a';outText('BONUS TIME ×'+5*S.rb,W/2,34,5)}
+ if(S.bonus){ctx.textAlign='center';ctx.font='20px "Dela Gothic One",sans-serif';ctx.fillStyle='#ffd24a';outText('BONUS TIME ×'+5*S.cc[2],W/2,34,5)}
  if(cutin){const q=cutin.t;ctx.save();ctx.translate(W/2+Math.max(0,.2-q)*900,H/2-60);ctx.rotate(-.1);ctx.fillStyle=cutin.c;ctx.fillRect(-W,-34,W*2,68);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='24px "Dela Gothic One",sans-serif';ctx.fillText(cutin.s,0,10);ctx.restore()}
  if(flash>0){ctx.fillStyle=`rgba(255,255,255,${flash})`;ctx.fillRect(-20,-20,W+40,H+40)}
  ctx.restore();
@@ -460,7 +460,7 @@ function refreshUI(){const pm=document.getElementById('pm');if(pm)pm.textContent
  for(const b of nodes){const n=b._n,s=n.st(),p=n.raw?n.pr():Math.ceil(n.pr()*DC());b.className='nd '+s+(s==='buy'&&S.pts<p?' poor':'');b.children[2].textContent=n.sub();b.children[3].textContent=s==='eq'?'装備中':s==='own'?(n.raw?(n.lbl||'MAX'):'装備する'):s==='lock'?'未解放':fmt(p)+'pt'}
  hudDirty=true;document.getElementById('pts').textContent=hf(S.pts)}
 function openPause(){openOv();ovb.innerHTML='<div class="hd"><span>ポーズ</span></div><button class="mn" id="p1">再開</button><button class="mn" id="p2">サウンド: '+(mute?'OFF':'ON')+'</button><div class="sl">BGM <input type="range" id="sb" min="0" max="100" value="'+Math.round(VB()*100)+'"></div><div class="sl">効果音 <input type="range" id="ss" min="0" max="100" value="'+Math.round(VS()*100)+'"></div><button class="mn" id="p3">データをコピー</button><button class="mn" id="p4">データを読み込む</button><button class="mn" id="p5">あそびかた</button><button class="mn" id="p6">ランキング</button><div style="margin-top:10px;font-size:12px">自動保存 '+LS.toLocaleTimeString()+'<br>ID: '+S.uid+'<br>転生'+S.rb+'回 / ポイント×'+PM().toFixed(2)+'</div>';
- const g=id=>document.getElementById(id);g('p1').onclick=closeOv;g('p6').onclick=openRank;g('sb').oninput=e=>{S.vb=e.target.value/100;if(bgmEl)bgmEl.volume=.4*VB();save()};g('ss').oninput=e=>{S.vs=e.target.value/100;save()};g('p5').onclick=()=>{ov.classList.remove('on');ovOn=0;intro.classList.remove('off');introOn=1;t1.hidden=true;t2.hidden=false;drawTut()};
+ const g=id=>document.getElementById(id);g('p1').onclick=closeOv;g('p6').onclick=openRank;g('sb').oninput=e=>{S.vb=e.target.value/100;if(bgmEl)bgmEl.volume=.4*VB();save()};g('ss').oninput=e=>{S.vs=e.target.value/100;save()};g('p5').onclick=()=>{ov.classList.remove('on');ovOn=0;intro.classList.remove('off');introOn=1;tp=0;t1.hidden=true;t2.hidden=false;showTP()};
  g('p2').onclick=()=>{startAudio();mute=!mute;if(master)master.gain.value=mute?0:.55;if(bgmEl)bgmEl.muted=mute;mb.classList.toggle('off',mute);mb.textContent=mute?'切':'音';openPause()};
  g('p3').onclick=()=>{const c=btoa(unescape(encodeURIComponent(JSON.stringify(S))));try{navigator.clipboard.writeText(c).then(()=>alert('コピーしました'),()=>prompt('コピーしてください',c))}catch(e){prompt('コピーしてください',c)}};
  g('p4').onclick=()=>{const c=prompt('コピーしたデータを貼り付け');if(!c)return;try{Object.assign(S,JSON.parse(decodeURIComponent(escape(atob(c)))));save();hudDirty=true;dockUI();alert('読み込みました')}catch(e){alert('読み込めませんでした')}}}
@@ -521,10 +521,10 @@ async function openClub(){if(!RANK.project){alert('準備中です');return}open
     rq.forEach(q=>add(mbtn('承認: '+q.name,()=>approve(q,ms.length)),mbtn('拒否',()=>fdel('clubreq/'+q._id).then(openClub))));add(mbtn('プレイヤーIDで招待',inviteP))}
    add(mbtn('組合をシェア',shareClub),mbtn(lead?'解散(1人のときだけ)':'脱退',()=>leaveClub(ms,lead)))}
  }catch(e){cb.textContent='読み込めませんでした'}}
-function cardTxt(id){const r=S.rb;return id===1?'夜の間はポイント獲得量が<b class="hl">×'+(1+r)+'</b>':id===2?'1ヶ月に1日ボーナスタイム':'10日に1日 部下の数×<b class="hl">'+(1000*(r+1))+'</b>撃破数が増える'}
+function cardTxt(id){const r=(S.cc[id]||0)+1;return id===1?'夜の間はポイント獲得量が<b class="hl">×'+(1+r)+'</b>':id===2?'1ヶ月に1日ボーナスタイム':'10日に1日 部下の数×<b class="hl">'+(1000*(r+1))+'</b>撃破数が増える'}
 function openCards(){openOv();const N=['サービス残業','有給休暇','ストライキ'],K=['夜','休','闘'];
  ovb.innerHTML='<div class="hd"><span>転生ボーナスを1枚選べ!</span></div><div class="cards">'+[1,2,3].map((id,i)=>'<div class="cd" data-i="'+id+'" style="animation-delay:'+(i*.25)+'s"><div class="in"><div class="bk">?</div><div class="fr c'+id+'"><div class="ch">'+K[id-1]+'</div><b>'+N[id-1]+'</b><p>'+cardTxt(id)+'</p></div></div></div>').join('')+'</div><div style="text-align:center;font:700 12px sans-serif;margin-top:10px;color:#ffd24a">カードをタップして選ぼう</div>';
- let pk=0;ovb.querySelectorAll('.cd').forEach(c=>{setTimeout(()=>c.classList.add('fl'),700+c.dataset.i*250);c.onclick=()=>{if(pk)return;pk=1;S.card=+c.dataset.i;save();c.classList.add('pk');ovb.querySelectorAll('.cd').forEach(o=>{if(o!==c)o.classList.add('dm')});sfx('levelup');setTimeout(closeOv,1500)}})}
+ let pk=0;ovb.querySelectorAll('.cd').forEach(c=>{setTimeout(()=>c.classList.add('fl'),700+c.dataset.i*250);c.onclick=()=>{if(pk)return;pk=1;S.card=+c.dataset.i;S.cc[S.card]=(S.cc[S.card]||0)+1;save();c.classList.add('pk');ovb.querySelectorAll('.cd').forEach(o=>{if(o!==c)o.classList.add('dm')});sfx('levelup');setTimeout(closeOv,1500)}})}
 function dockUI(){const r=document.getElementById('rb');r.hidden=!S.owned[15];r.textContent='転生'}
 document.getElementById('lv').onclick=openLv;document.getElementById('cl').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openClub()});
 document.getElementById('rk').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openRank()});
@@ -561,9 +561,9 @@ document.getElementById('share').addEventListener('click',async()=>{
 addEventListener('pointerdown',startAudio,{once:true});addEventListener('keydown',startAudio,{once:true});
 const mb=document.getElementById('mute');
 mb.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();startAudio();mute=!mute;if(master)master.gain.value=mute?0:.55;if(bgmEl)bgmEl.muted=mute;mb.classList.toggle('off',mute);mb.textContent=mute?'切':'音'});
-let introOn=1;
+let introOn=1,tp=0;
 const intro=document.getElementById('intro'),t1=document.getElementById('t1'),t2=document.getElementById('t2');
-function drawTut(){const c=document.getElementById('tc');c.width=320*dpr;c.height=180*dpr;const o=ctx;ctx=c.getContext('2d');ctx.scale(dpr,dpr);
+function drawTut(){if(tp>0)return drawTutN();const c=document.getElementById('tc');c.width=320*dpr;c.height=180*dpr;const o=ctx;ctx=c.getContext('2d');ctx.scale(dpr,dpr);
  ctx.fillStyle='#d9cfb8';ctx.fillRect(0,0,320,180);ctx.fillStyle='#5a5348';ctx.fillRect(0,150,320,30);ctx.fillStyle='#2b1d16';ctx.fillRect(0,150,320,3);
  const B={t:0,hue:220,hair:'#3a3a3a'};drawBlock(B,165,46,0,0);drawBlock({t:1,hue:220,hair:'#3a3a3a'},165,98,0,0);
  emp(36,176,1.5,'#8a2a2a','#ffd24a',1,'#222');
@@ -573,11 +573,24 @@ function drawTut(){const c=document.getElementById('tc');c.width=320*dpr;c.heigh
  ctx.fillStyle='#f1c9a5';ctx.strokeStyle='#2b1d16';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(70,70,13,20,-.3,0,7);fs();
  ctx.font='bold 22px sans-serif';ctx.textAlign='center';ctx.lineJoin='round';ctx.lineWidth=5;ctx.strokeStyle='#2b1d16';ctx.fillStyle='#fff';ctx.strokeText('長押し!',66,22);ctx.fillText('長押し!',66,22);
  ctx=o}
+const TP=['<b>画面を長押し</b>で武器を連射!<br>部下は自動で武器を投げてくれる<br>巨大部下は、君の攻撃に合わせて一緒に殴る!',
+ '<b>「レベルアップ」</b>で武器・部下・時止め・会心・割引・倍率を強化<br>ゲージが溜まったら右下の<b>「時止め」</b>!5秒間、連打で殴りまくれ<br>昼と夜は30秒ごとに切り替わる',
+ '神の鉄槌を解放すると<b>「転生」</b>できる<br>転生で倍率アップ&カードを1枚えらべる<br>組合に入って仲間とランキングを競おう!'];
+function showTP(){document.getElementById('tpt').innerHTML=TP[tp];document.getElementById('pg').textContent=(tp+1)+' / 3';document.getElementById('bk').hidden=tp===0;document.getElementById('ok').textContent=tp<2?'次へ':'はじめる';drawTut()}
+function drawTutN(){const c=document.getElementById('tc');c.width=320*dpr;c.height=180*dpr;const o=ctx;ctx=c.getContext('2d');ctx.scale(dpr,dpr);
+ ctx.fillStyle=tp===1?'#d9cfb8':'#2a2550';ctx.fillRect(0,0,320,180);ctx.strokeStyle='#2b1d16';ctx.lineWidth=3;ctx.textAlign='center';
+ if(tp===1){ctx.beginPath();for(const x of[60,160,260]){ctx.moveTo(x,40);ctx.lineTo(x,140)}ctx.stroke();
+  [[60,'武器'],[160,'部下'],[260,'時止め']].forEach(([x,n])=>{for(let j=0;j<3;j++){ctx.fillStyle='#f6edd8';rr(x-26,30+j*40,52,34,6);fs()}ctx.fillStyle='#d9381e';rr(x-30,6,60,20,6);fs();ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.fillText(n,x,21)});
+  ctx.save();ctx.translate(60,47);wpn(2,0,1);ctx.restore();emp(160,68,.6,'#4a5a7a','#3a6ad9',0,'#333')}
+ else{['夜','休','闘'].forEach((k,i)=>{ctx.fillStyle=['#cfd8ff','#fff0b3','#ffd0c8'][i];rr(30+i*90,24,70,100,8);fs();ctx.fillStyle='#d9381e';ctx.font='36px "Dela Gothic One",sans-serif';ctx.fillText(k,65+i*90,88)});
+  ctx.fillStyle='#ffd24a';ctx.font='bold 16px sans-serif';ctx.fillText('転生で1枚えらぶ!',160,158)}
+ ctx=o}
 function begin(){intro.classList.add('off');introOn=0;paused=false;hold=false;last=performance.now()}
-intro.addEventListener('pointerdown',e=>{if(t1.hidden)return;e.preventDefault();startAudio();if(!S.seen){S.seen=1;save();t1.hidden=true;t2.hidden=false;drawTut()}else begin()});
-document.getElementById('ok').addEventListener('click',begin);
+intro.addEventListener('pointerdown',e=>{if(t1.hidden)return;e.preventDefault();startAudio();if(!S.seen){S.seen=1;save();tp=0;t1.hidden=true;t2.hidden=false;showTP()}else begin()});
+document.getElementById('ok').addEventListener('click',()=>{if(tp<2){tp++;showTP()}else begin()});document.getElementById('bk').addEventListener('click',()=>{tp=Math.max(0,tp-1);showTP()});
 document.getElementById('rec').textContent=S.tot?'撃破 '+hf(S.tot)+'人 ・ つづきから':'';
 if(!S.uid)S.uid=Math.random().toString(36).slice(2,10).toUpperCase();
+if(S.card&&!S.cc[S.card])S.cc[S.card]=Math.max(1,S.rb);
 dockUI();draw();requestAnimationFrame(loop);
 </script>
 </body>

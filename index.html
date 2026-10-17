@@ -585,7 +585,7 @@ function dockUI(){const r=document.getElementById('rb');r.hidden=!S.owned[15];r.
 document.getElementById('lv').onclick=openLv;document.getElementById('cl').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openClub()});
 document.getElementById('rk').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openRank()});
 document.getElementById('pz').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();hold=false;openPause()});
-document.getElementById('rb').onclick=()=>{if(!confirm('転生しますか?\n・ポイント倍率が×'+2*(2+S.rb)+'になります\n・自動レーザーがLv'+(S.rb+1)+'になります\n・ポイント、武器、部下、レベルはリセットされます'))return;
+document.getElementById('rb').onclick=()=>{if(!confirm('転生しますか?\n・ポイント倍率が×'+(2*Math.pow(2+S.rb,.8)).toFixed(1)+'になります\n・自動レーザーがLv'+(S.rb+1)+'になります\n・ポイント、武器、部下、レベルはリセットされます\n'+((S.rb+1)%5===0?'・強化カードを1枚えらべます!':'・カードは転生5回ごとにえらべます(あと'+(5-(S.rb+1)%5)+'回)')))return;
  S.rb++;S.pts=0;S.owned=[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];S.eq=0;S.subs=S.giants=S.train=S.ult=S.mul=S.dc=S.gl=0;proj.length=0;flying.length=0;save();hudDirty=true;dockUI();sfx('levelup');if(S.rb>=5&&S.rb%5===0)openCards();texts.push({x:W/2,y:H/2,s:'転生!!',l:1.2,sc:1.2,rot:0,c:'#ffd24a',up:1})};
 const ub=document.getElementById('ult');
 ub.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();ultGo()});
@@ -631,7 +631,7 @@ function drawTut(){if(tp>0)return drawTutN();const c=document.getElementById('tc
  ctx=o}
 const TP=['<b>画面を長押し</b>で武器を連射!<br>部下は自動で武器を投げてくれる<br>巨大部下は、君の攻撃に合わせて一緒に殴る!',
  '<b>「レベルアップ」</b>で武器・部下・時止め・会心・割引・倍率を強化<br>ゲージが溜まったら右下の<b>「時止め」</b>!5秒間、連打で殴りまくれ<br>昼と夜は30秒ごとに切り替わる',
- '神の鉄槌を解放すると<b>「転生」</b>できる<br>転生で倍率アップ&カードを1枚えらべる<br>組合に入って仲間とランキングを競おう!'];
+ '神の鉄槌を解放すると<b>「転生」</b>できる<br>転生で倍率アップ<br>転生5回ごとに強化カードを1枚えらべる<br>組合に入って仲間とランキングを競おう!'];
 function showTP(){document.getElementById('tpt').innerHTML=TP[tp];document.getElementById('pg').textContent=(tp+1)+' / 3';document.getElementById('bk').hidden=tp===0;document.getElementById('ok').textContent=tp<2?'次へ':'はじめる';drawTut()}
 function drawTutN(){const c=document.getElementById('tc');c.width=320*dpr;c.height=180*dpr;const o=ctx;ctx=c.getContext('2d');ctx.scale(dpr,dpr);
  ctx.fillStyle=tp===1?'#d9cfb8':'#2a2550';ctx.fillRect(0,0,320,180);ctx.strokeStyle='#2b1d16';ctx.lineWidth=3;ctx.textAlign='center';

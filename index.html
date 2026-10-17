@@ -484,21 +484,21 @@ function openLv(){openOv();ovb.innerHTML='<div class="hd"><span>レベルアッ�
   for(const nd of list){const b=document.createElement('button');b.className='nd';b.append(icon(nd.ic));b.insertAdjacentHTML('beforeend','<b>'+nd.n+'</b><i></i><u></u>');let lp=0,tm;b.onpointerdown=()=>{lp=0;tm=setTimeout(()=>{lp=1;showDesc(nd)},400)};b.onpointerup=b.onpointerleave=()=>clearTimeout(tm);b.onclick=()=>{if(lp){lp=0;return}nd.go();showDesc(nd);hudDirty=true;save();dockUI();refreshUI()};b._n=nd;c.append(b);nodes.push(b)}
   tr.append(c)}
  document.getElementById('xx').onclick=closeOv;document.getElementById('bulk').onclick=()=>{let n=0;for(let i=1;i<WP.length;i++){if(S.owned[i])continue;if(!S.owned[i-1])break;if(!pay(WP[i].cost))break;S.owned[i]=1;S.eq=i;n++}hudDirty=true;save();dockUI();refreshUI()};tr.style.zoom=tz;document.getElementById('zp').onclick=()=>{tz=Math.min(2,tz+.2);tr.style.zoom=tz};document.getElementById('zm').onclick=()=>{tz=Math.max(.6,tz-.2);tr.style.zoom=tz};refreshUI()}
-function refreshUI(){const pm=document.getElementById('pm');if(pm)pm.textContent=hf(S.pts)+'pt';const p2=document.getElementById('pm2');if(p2)p2.textContent='倍率 ×'+PM()+' = 基本2 × 転生'+(1+S.rb)+' × 購入'+(1+S.mul);
+function refreshUI(){const pm=document.getElementById('pm');if(pm)pm.textContent=hf(S.pts)+'pt';const p2=document.getElementById('pm2');if(p2){const c1=S.cc[1]>0&&nightF()>.5?' 残業+'+S.cc[1]:'',c2=S.cc[2]>0&&S.bonus?' 有給+'+5*S.cc[2]:'',bf=bv('pm')>1?' バフ+'+(bv('pm')-1):'';p2.innerHTML='ポイント倍率 <b style="font-size:18px">×'+PM().toFixed(1)+'</b><br><span style="font-size:11px;opacity:.85">転生+'+S.rb+' 購入+'+S.mul+c1+c2+bf+'</span>'};
  for(const b of nodes){const n=b._n,s=n.st(),p=n.raw?n.pr():Math.ceil(n.pr()*DC());b.className='nd '+s+(s==='buy'&&S.pts<p?' poor':'');b.children[2].textContent=n.sub();b.children[3].textContent=s==='eq'?'装備中':s==='own'?(n.raw?(n.lbl||'MAX'):'装備する'):s==='lock'?'未解放':fmt(p)+'pt'}
  hudDirty=true;document.getElementById('pts').textContent=hf(S.pts)}
 function openPause(){openOv();ovb.innerHTML='<div class="hd"><span>メニュー</span><button class="x" id="p0">×</button></div><button class="mn go" id="p1">▶ ゲームに戻る</button>'
  +'<div class="pg"><button class="mn" id="p7">実績</button><button class="mn" id="p8">上司図鑑</button><button class="mn" id="p6">ランキング</button><button class="mn" id="p5">あそびかた</button></div>'
  +'<div class="card"><div class="ct">サウンド</div><button class="mn" id="p2" style="height:40px">サウンド: '+(mute?'OFF':'ON')+'</button><div class="sl">BGM <input type="range" id="sb" min="0" max="100" value="'+Math.round(VB()*100)+'"></div><div class="sl">効果音 <input type="range" id="ss" min="0" max="100" value="'+Math.round(VS()*100)+'"></div></div>'
  +'<div class="card"><div class="ct">セーブデータ</div><div class="pg" style="margin-top:4px"><button class="mn" id="p3" style="height:40px">データをコピー</button><button class="mn" id="p4" style="height:40px">データを読み込む</button></div></div>'
- +'<div class="st">自動保存 '+LS.toLocaleTimeString()+'<br>ID: '+S.uid.slice(0,8)+'<br>転生'+S.rb+'回 / ポイント×'+PM().toFixed(2)+'</div>';
+ +'<div class="st">自動保存 '+LS.toLocaleTimeString()+'<br>ID: '+S.uid.slice(0,8)+'<br>転生'+S.rb+'回 / ポイント×'+PM().toFixed(1)+'</div>';
  const g=id=>document.getElementById(id);g('p1').onclick=closeOv;g('p0').onclick=closeOv;g('p6').onclick=openRank;g('p7').onclick=openAch;g('p8').onclick=openDex;g('sb').oninput=e=>{S.vb=e.target.value/100;if(bgmEl)bgmEl.volume=.4*VB();save()};g('ss').oninput=e=>{S.vs=e.target.value/100;save()};g('p5').onclick=()=>{ov.classList.remove('on');ovOn=0;intro.classList.remove('off');introOn=1;tp=0;t1.hidden=true;t2.hidden=false;showTP()};
  g('p2').onclick=()=>{startAudio();mute=!mute;if(master)master.gain.value=mute?0:.55;if(bgmEl)bgmEl.muted=mute;mb.classList.toggle('off',mute);mb.textContent=mute?'切':'音';openPause()};
  g('p3').onclick=()=>{const c=btoa(unescape(encodeURIComponent(JSON.stringify(S))));try{navigator.clipboard.writeText(c).then(()=>alert('コピーしました'),()=>prompt('コピーしてください',c))}catch(e){prompt('コピーしてください',c)}};
  g('p4').onclick=()=>{const c=prompt('コピーしたデータを貼り付け');if(!c)return;try{Object.assign(S,JSON.parse(decodeURIComponent(escape(atob(c)))));save();hudDirty=true;dockUI();alert('読み込みました')}catch(e){alert('読み込めませんでした')}}}
 const RANK={project:'joushi-otoshi',key:'AIzaSyCtfqab-S4D8IBq3NMfa0ZSyY-Si3VwduM'};
 const FU=()=>`https://firestore.googleapis.com/v1/projects/${RANK.project}/databases/(default)/documents`;
-const SEASON='s2';
+const SEASON='s3';
 const RC='ranks_'+SEASON,CC='clubs_'+SEASON,CQ='clubreq_'+SEASON,CV='clubinv_'+SEASON,MCOL=()=>'rm_'+SEASON+'_'+curKey(),CMC=()=>'cm_'+SEASON+'_'+curKey();
 const RK=()=>Math.max(0,S.tot-(S.rbase||0)),RMK=()=>S.mkey===curKey()?Math.max(0,S.mk-(S.mbk===curKey()?S.mbase||0:0)):0;let rtab=0,rkind=0;
 let TOK='',TEXP=0,authP=null;
